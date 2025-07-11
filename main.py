@@ -1,4 +1,4 @@
- """Entry point for running the assistant."""
+"""Entry point for running the assistant."""
 import logging
 import yaml
 from src.assistant.core import Assistant

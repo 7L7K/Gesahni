@@ -14,6 +14,7 @@
 <div>
     <button id="start">Start</button>
     <button id="stop" disabled>Stop</button>
+    <input id="tags" placeholder="tags" />
     <button id="transcribe" disabled>Send Audio</button>
 </div>
 <pre id="live-text"></pre>
@@ -87,6 +88,8 @@ function sendChunk(blob) {
 function sendAudio(blob) {
     const form = new FormData();
     form.append('file', blob, 'video.webm');
+    const tags = document.getElementById('tags').value;
+    if (tags) form.append('tags', tags);
     fetch('/transcribe', { method: 'POST', body: form })
         .then(r => r.json())
         .then(data => { document.getElementById('result').textContent = data.text || data.error; })

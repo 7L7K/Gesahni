@@ -22,7 +22,7 @@ class SessionManager:
             raise
 
         # Create placeholder files if they don't exist
-        for name in ["video.mp4", "audio.wav", "transcript.txt", "tags.json"]:
+        for name in ["video.webm", "audio.wav", "transcript.txt", "tags.json"]:
             path = os.path.join(session_dir, name)
             if not os.path.exists(path):
                 try:

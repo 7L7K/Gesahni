@@ -4,6 +4,9 @@ import tempfile
 import subprocess
 from pathlib import Path
 import yaml
+import json
+
+from src.sessions import SessionManager
 
 from src.transcription.base import TranscriptionService
 
@@ -26,6 +29,13 @@ logger = logging.getLogger(__name__)
 # ---- Config and Transcriber setup ----
 config = load_config("config.yaml")
 transcriber = TranscriptionService(config.get("whisper_model", "base"))
+session_manager = SessionManager(config.get("session_root", "sessions"))
+try:
+    SESSION_DIR = Path(session_manager.create_today_session())
+    logger.info("Session directory ready at %s", SESSION_DIR)
+except Exception as exc:
+    logger.exception("Failed to prepare session directory: %s", exc)
+    SESSION_DIR = Path(tempfile.mkdtemp(prefix="session_"))
 
 app = Flask(__name__)
 
@@ -42,31 +52,50 @@ def transcribe_route():
     file = request.files['file']
     logger.info("Received file: %s", file.filename)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        video_path = Path(tmpdir) / 'video.webm'
-        audio_path = Path(tmpdir) / 'audio.wav'
-        try:
-            file.save(video_path)
-            logger.info("Saved uploaded file to %s", video_path)
-            # Convert video to audio using ffmpeg
-            subprocess.run(
-                ['ffmpeg', '-y', '-i', str(video_path), str(audio_path)],
-                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            logger.info("Audio extracted to %s", audio_path)
-        except subprocess.CalledProcessError as exc:
-            logger.error("ffmpeg failed: %s", exc)
-            return jsonify({'error': f'ffmpeg failed: {exc}'}), 500
-        except Exception as exc:
-            logger.exception("Unexpected error processing file: %s", exc)
-            return jsonify({'error': f'Error processing file: {exc}'}), 500
+    video_path = SESSION_DIR / 'video.webm'
+    audio_path = SESSION_DIR / 'audio.wav'
+    transcript_path = SESSION_DIR / 'transcript.txt'
+    tags_path = SESSION_DIR / 'tags.json'
+    tags = request.form.get('tags', '')
 
-        try:
-            text = transcriber.transcribe(str(audio_path))
-            logger.info("Transcription complete for %s", file.filename)
-        except Exception as exc:
-            logger.exception("Transcription failed: %s", exc)
-            return jsonify({'error': f'transcription failed: {exc}'}), 500
+    try:
+        data = file.read()
+        with open(video_path, 'wb') as dest:
+            dest.write(data)
+        logger.info("Saved final video to %s", video_path)
+        subprocess.run(
+            ['ffmpeg', '-y', '-i', str(video_path), str(audio_path)],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        logger.info("Audio extracted to %s", audio_path)
+    except subprocess.CalledProcessError as exc:
+        logger.error("ffmpeg failed: %s", exc)
+        return jsonify({'error': f'ffmpeg failed: {exc}'}), 500
+    except Exception as exc:
+        logger.exception("Unexpected error processing file: %s", exc)
+        return jsonify({'error': f'Error processing file: {exc}'}), 500
+
+    try:
+        text = transcriber.transcribe(str(audio_path))
+        with open(transcript_path, 'a', encoding='utf-8') as tf:
+            tf.write(text + "\n")
+        logger.info("Transcription complete for %s", file.filename)
+
+        if tags:
+            try:
+                if tags_path.exists():
+                    existing = json.loads(tags_path.read_text(encoding='utf-8') or '[]')
+                else:
+                    existing = []
+            except Exception:
+                existing = []
+            new_tags = [t.strip() for t in tags.split(',') if t.strip()]
+            if new_tags:
+                existing.extend(new_tags)
+                tags_path.write_text(json.dumps(existing), encoding='utf-8')
+    except Exception as exc:
+        logger.exception("Transcription failed: %s", exc)
+        return jsonify({'error': f'transcription failed: {exc}'}), 500
 
     return jsonify({'text': text})
 
@@ -80,11 +109,20 @@ def upload_chunk():
     file = request.files['file']
     logger.info("Received chunk %s", file.filename)
 
+    data = file.read()
+    session_video = SESSION_DIR / 'video.webm'
+    try:
+        with open(session_video, 'ab') as dest:
+            dest.write(data)
+    except Exception as exc:
+        logger.exception("Failed to write chunk to %s: %s", session_video, exc)
+
     with tempfile.TemporaryDirectory() as tmpdir:
         video_path = Path(tmpdir) / 'chunk.webm'
         audio_path = Path(tmpdir) / 'chunk.wav'
+        with open(video_path, 'wb') as fh:
+            fh.write(data)
         try:
-            file.save(video_path)
             subprocess.run(
                 ['ffmpeg', '-y', '-i', str(video_path), str(audio_path)],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
