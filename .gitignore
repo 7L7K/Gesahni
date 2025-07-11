@@ -32,3 +32,4 @@ var/
 
 # others
 *.log
+/sessions/
