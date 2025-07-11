@@ -26,6 +26,12 @@ python main.py path/to/audiofile
 
 The script will output the transcribed text to the console.
 
+## Configuration
+
+Runtime options are stored in `config.yaml`. The file includes settings for
+audio recording parameters, the Whisper model to load, and the directory used
+for session data. Adjust these values to customize how the assistant operates.
+
 ### Web Interface
 
 The project also includes a minimal web interface for recording video with audio.

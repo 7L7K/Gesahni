@@ -1,2 +1,13 @@
 # Default configuration for the assistant
 name: example-assistant
+
+# Audio recording parameters
+audio:
+  bitrate: 128k
+  format: wav
+
+# Whisper model used for transcription
+whisper_model: base
+
+# Directory where session data is stored
+session_root: sessions
