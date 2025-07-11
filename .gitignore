@@ -33,3 +33,5 @@ var/
 # others
 *.log
 /sessions/
+.venv/
+.python-version
