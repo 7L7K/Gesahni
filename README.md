@@ -1,40 +1,67 @@
 # Gesahni
 
-## Project Goals
+**Gesahni** is a simple project that converts audio to text using [OpenAI's Whisper](https://github.com/openai/whisper). It supports both command-line and browser-based recording, and it automatically organizes sessions by date.
 
-Gesahni aims to provide a simple interface for converting audio to text using [Whisper](https://github.com/openai/whisper). The project serves as a starting point for experimenting with speech-to-text workflows in Python.
+---
 
-## Installation
+## 🚀 Project Goals
 
-1. Clone this repository.
-2. Create and activate a Python virtual environment.
-3. Install dependencies with `pip install -r requirements.txt`.
+- Convert audio to text using Whisper
+- Automatically organize transcripts in daily folders
+- Record audio/video via CLI or browser
+- Serve as a base for future speech-to-text projects
 
-## Dependencies
+---
 
-- Python 3.8 or later
-- [Whisper](https://github.com/openai/whisper)
-- `ffmpeg` (required by Whisper for audio processing)
-
-## Running the Application
-
-After installing dependencies, run the main script. It will create a session
-folder for today's date inside the `sessions/` directory. Place an `audio.wav`
-file in that folder and run:
+## 🛠 Installation
 
 ```bash
+# 1. Clone the repo
+git clone https://github.com/your-username/gesahni.git
+cd gesahni
+
+# 2. Set up a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # on Windows: .venv\Scripts\activate
+
+# 3. Install Python dependencies
+pip install -r requirements.txt
+
+# 4. Install ffmpeg (required by Whisper)
+# macOS
+brew install ffmpeg
+
+# Ubuntu
+sudo apt install ffmpeg
+
+# Windows
+# Download from: https://ffmpeg.org/download.html
+🧪 Running the Application
+▶️ CLI Mode (Transcribe audio.wav)
+# Place an audio.wav inside: sessions/YYYY-MM-DD/
 python main.py
-```
-
-The transcription will be stored as `transcript.txt` inside the same session
-folder and printed to the console.
-
-## Contribution Guidelines
-
-Contributions are welcome! To contribute:
-
-1. Fork this repository and create a new branch for your change.
-2. Make your modifications and include clear commit messages.
-3. Open a pull request describing your changes.
-
-Please ensure your code follows standard Python style conventions and includes appropriate documentation.
+Output: transcript.txt in the same folder
+Also prints the transcript to the console
+🌐 Web Mode (Record Video/Audio in Browser)
+# Start the server
+python server.py
+Open your browser: http://localhost:5000
+Use the Start / Stop buttons to record
+Click Send Audio to transcribe (requires Whisper installed)
+📦 Dependencies
+Python 3.8+
+whisper (https://github.com/openai/whisper)
+ffmpeg
+Flask
+🤝 Contributing
+# 1. Fork this repo
+# 2. Create a branch: git checkout -b feature-thing
+# 3. Make your changes and commit
+# 4. Open a pull request
+Please write clean, documented code that follows Python best practices.
+🧠 Future Ideas
+Real-time mic transcription
+Speaker detection
+Upload multiple audio formats
+Transcription previews in browser
+Whisper model switching (tiny/base/large)
