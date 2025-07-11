@@ -43,6 +43,8 @@ python server.py
 
 The page displays the live camera feed with **Start** and **Stop** buttons. After stopping, the recording is offered as `video.webm` for download. You may also send the captured audio to the backend for transcription (if Whisper is installed) using the **Send Audio** button.
 
+Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are appended to `video.webm`; once the final clip is sent, the server produces `audio.wav`, appends the transcription to `transcript.txt`, and stores any comma-separated tags into `tags.json`.
+
 ### Live Streaming
 
 While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
