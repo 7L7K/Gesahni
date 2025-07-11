@@ -70,5 +70,36 @@ def transcribe_route():
 
     return jsonify({'text': text})
 
+@app.route('/upload', methods=['POST'])
+def upload_chunk():
+    """Handle streaming WebM chunks from the browser."""
+    if 'file' not in request.files:
+        logger.warning("No file provided in chunk upload")
+        return jsonify({'error': 'missing file'}), 400
+
+    file = request.files['file']
+    logger.info("Received chunk %s", file.filename)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        video_path = Path(tmpdir) / 'chunk.webm'
+        audio_path = Path(tmpdir) / 'chunk.wav'
+        try:
+            file.save(video_path)
+            subprocess.run(
+                ['ffmpeg', '-y', '-i', str(video_path), str(audio_path)],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+        except Exception as exc:
+            logger.exception("Failed to process chunk: %s", exc)
+            return jsonify({'error': f'processing failed: {exc}'}), 500
+
+        try:
+            text = transcriber.transcribe(str(audio_path))
+        except Exception as exc:
+            logger.exception("Chunk transcription failed: %s", exc)
+            return jsonify({'error': f'transcription failed: {exc}'}), 500
+
+    return jsonify({'text': text})
+
 if __name__ == '__main__':
     app.run(debug=True)
