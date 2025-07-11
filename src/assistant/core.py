@@ -7,7 +7,8 @@ class Assistant:
         self.transcription = TranscriptionService()
         self.memory = Memory()
 
-    def process_audio(self, audio_path: str) -> str:
-        text = self.transcription.transcribe(audio_path)
+    def process_audio(self, audio_path: str, transcript_path: str) -> str:
+        """Transcribe ``audio_path`` and store the result."""
+        text = self.transcription.transcribe(audio_path, transcript_path)
         self.memory.add(text)
         return text

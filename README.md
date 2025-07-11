@@ -18,13 +18,16 @@ Gesahni aims to provide a simple interface for converting audio to text using [W
 
 ## Running the Application
 
-After installing dependencies, run the main script with an audio file as input:
+After installing dependencies, run the main script. It will create a session
+folder for today's date inside the `sessions/` directory. Place an `audio.wav`
+file in that folder and run:
 
 ```bash
-python main.py path/to/audiofile
+python main.py
 ```
 
-The script will output the transcribed text to the console.
+The transcription will be stored as `transcript.txt` inside the same session
+folder and printed to the console.
 
 ## Contribution Guidelines
 

@@ -1,4 +1,5 @@
 """Entry point for running the assistant."""
+import os
 import yaml
 from src.assistant.core import Assistant
 from src.sessions import SessionManager
@@ -17,9 +18,12 @@ def main() -> None:
     # Normally we would pass config to components.
     print(f"Loaded config for {config.get('name')}")
     print(f"Session directory prepared at {session_dir}")
-    # Placeholder for processing
-    result = assistant.process_audio('sample.wav')
-    print(f"Processed audio: {result}")
+
+    audio_path = os.path.join(session_dir, "audio.wav")
+    transcript_path = os.path.join(session_dir, "transcript.txt")
+    result = assistant.process_audio(audio_path, transcript_path)
+    print(f"Transcription saved to {transcript_path}")
+    print(result)
 
 
 if __name__ == '__main__':
