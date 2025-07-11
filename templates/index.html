@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Camera Recorder</title>
+    <style>
+        video { width: 480px; height: 360px; background: #000; }
+        button { margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+<h1>Live Camera Feed</h1>
+<video id="video" autoplay playsinline></video>
+<div>
+    <button id="start">Start</button>
+    <button id="stop" disabled>Stop</button>
+    <button id="transcribe" disabled>Send Audio</button>
+</div>
+<div id="download"></div>
+<pre id="result"></pre>
+<script>
+let stream;
+let recorder;
+let chunks = [];
+
+async function init() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('video').srcObject = stream;
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+init();
+
+document.getElementById('start').onclick = () => {
+    chunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    recorder.onstop = handleStop;
+    recorder.start();
+    document.getElementById('start').disabled = true;
+    document.getElementById('stop').disabled = false;
+};
+
+document.getElementById('stop').onclick = () => {
+    recorder.stop();
+    document.getElementById('stop').disabled = true;
+};
+
+function handleStop() {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'video.webm';
+    a.textContent = 'Download recording';
+    const div = document.getElementById('download');
+    div.innerHTML = '';
+    div.appendChild(a);
+    const transBtn = document.getElementById('transcribe');
+    transBtn.disabled = false;
+    transBtn.onclick = () => sendAudio(blob);
+    document.getElementById('start').disabled = false;
+}
+
+function sendAudio(blob) {
+    const form = new FormData();
+    form.append('file', blob, 'video.webm');
+    fetch('/transcribe', { method: 'POST', body: form })
+        .then(r => r.json())
+        .then(data => { document.getElementById('result').textContent = data.text || data.error; })
+        .catch(err => { document.getElementById('result').textContent = err; });
+}
+</script>
+</body>
+</html>
