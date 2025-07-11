@@ -1,5 +1,8 @@
+import logging
 from src.transcription.base import TranscriptionService
 from src.memory.memory import Memory
+
+logger = logging.getLogger(__name__)
 
 class Assistant:
     """Main assistant class coordinating subsystems."""
@@ -8,6 +11,7 @@ class Assistant:
         self.memory = Memory()
 
     def process_audio(self, audio_path: str) -> str:
+        logger.info("Processing audio file %s", audio_path)
         text = self.transcription.transcribe(audio_path)
         self.memory.add(text)
         return text
