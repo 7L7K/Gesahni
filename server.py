@@ -2,11 +2,20 @@ from flask import Flask, request, jsonify, render_template
 import tempfile
 import subprocess
 from pathlib import Path
+import yaml
 
 from src.transcription.base import TranscriptionService
 
+
+def load_config(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+config = load_config("config.yaml")
+transcriber = TranscriptionService(config.get("whisper_model", "base"))
+
 app = Flask(__name__)
-transcriber = TranscriptionService()
 
 @app.route('/')
 def index():
