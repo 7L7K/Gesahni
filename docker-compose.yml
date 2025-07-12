@@ -20,8 +20,10 @@ services:
       - redis
     environment:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db/postgres
-      - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - FERNET_KEY=${FERNET_KEY}
+      - API_TOKEN=${API_TOKEN}
   worker:
     build:
       context: .
@@ -33,5 +35,6 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db/postgres
-      - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - FERNET_KEY=${FERNET_KEY}

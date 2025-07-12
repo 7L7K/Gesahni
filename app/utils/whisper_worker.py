@@ -11,8 +11,8 @@ from .crypto import decrypt_file
 
 celery_app = Celery(
     'whisper_worker',
-    broker=os.getenv('CELERY_BROKER', 'redis://redis:6379/0'),
-    backend=os.getenv('CELERY_BACKEND', 'redis://redis:6379/0'),
+    broker=os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'),
+    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0'),
 )
 
 model = None

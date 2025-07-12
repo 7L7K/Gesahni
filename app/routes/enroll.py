@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Header
 from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -13,7 +13,13 @@ from ..utils.whisper_worker import transcribe_voice
 import numpy as np
 import face_recognition
 
-router = APIRouter()
+API_TOKEN = os.getenv("API_TOKEN")
+
+def verify_token(x_api_token: str = Header(...)):
+    if API_TOKEN and x_api_token != API_TOKEN:
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+router = APIRouter(dependencies=[Depends(verify_token)])
 
 MEDIA_ROOT = Path('media')
 EMBED_ROOT = Path('embeddings')
@@ -31,6 +37,8 @@ async def enroll_voice(user_id: str, file: UploadFile = File(...), db: Session =
     user_dir.mkdir(parents=True, exist_ok=True)
     raw_path = user_dir / 'voice.wav'
     data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail='file too large')
     with open(raw_path, 'wb') as fh:
         fh.write(data)
     enc_path = raw_path.with_suffix('.enc')
@@ -57,6 +65,8 @@ async def enroll_face(
             raise HTTPException(status_code=400, detail='images must be jpeg')
         raw = user_dir / f"{name}.jpg"
         data = await file.read()
+        if len(data) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail='file too large')
         with open(raw, 'wb') as fh:
             fh.write(data)
         enc = raw.with_suffix('.enc')

@@ -1,7 +1,12 @@
 import os
 from cryptography.fernet import Fernet
 
-FERNET_KEY = os.getenv("FERNET_KEY", Fernet.generate_key())
+_key = os.getenv("FERNET_KEY")
+if _key:
+    FERNET_KEY = _key.encode()
+else:
+    FERNET_KEY = Fernet.generate_key()
+
 fernet = Fernet(FERNET_KEY)
 
 

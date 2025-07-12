@@ -36,3 +36,4 @@ var/
 .venv/
 .python-version
 node_modules/
+.env
