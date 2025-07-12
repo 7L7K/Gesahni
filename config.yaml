@@ -11,3 +11,6 @@ whisper_model: base
 
 # Directory where session data is stored
 session_root: sessions
+
+# Flask debug mode
+flask_debug: false

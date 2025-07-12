@@ -1,4 +1,5 @@
 """Entry point for running the assistant."""
+import argparse
 import logging
 import yaml
 from src.assistant.core import Assistant
@@ -17,7 +18,20 @@ def load_config(path: str) -> dict:
         logger.exception("Failed to load configuration: %s", exc)
         return {}
 
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Run the assistant")
+    parser.add_argument(
+        "audio",
+        nargs="?",
+        default="sample.wav",
+        help="Path to the audio file to process",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     logging.basicConfig(
         level=logging.INFO,
         format='[%(asctime)s] %(levelname)s:%(name)s: %(message)s'
@@ -47,7 +61,7 @@ def main() -> None:
     logger.info("Using Whisper model: %s", model_name)
 
     try:
-        result = assistant.process_audio('sample.wav')
+        result = assistant.process_audio(args.audio)
         logger.info("Processed audio: %s", result)
     except Exception as exc:
         logger.exception("Audio processing failed: %s", exc)
