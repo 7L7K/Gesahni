@@ -49,6 +49,15 @@ Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are
 
 While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
 
+### Session Status
+
+When `/transcribe` finishes processing the uploaded recording it writes a
+`status.json` file to the session directory with `{whisper_done: true,
+gpt_done: false}`. A background GPT worker later writes `summary.json` and
+updates the status file to `{whisper_done: true, gpt_done: true}`. You can
+query `/status/latest` to retrieve this status along with the summary and next
+question if they are available.
+
 ## Contribution Guidelines
 
 Contributions are welcome! To contribute:

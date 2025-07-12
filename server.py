@@ -123,6 +123,8 @@ def transcribe_route():
             if new_tags:
                 existing.extend(new_tags)
                 tags_path.write_text(json.dumps(existing), encoding="utf-8")
+        # Mark Whisper transcription as done
+        session_manager.write_status(str(SESSION_DIR), True, False)
     except Exception as exc:
         logger.exception("Transcription failed: %s", exc)
         return jsonify({"error": f"transcription failed: {exc}"}), 500
@@ -180,6 +182,45 @@ def upload_chunk():
             return jsonify({"error": f"transcription failed: {exc}"}), 500
 
     return jsonify({"text": text})
+
+
+@app.route("/status/latest", methods=["GET"])
+def latest_status():
+    """Return status and summary info for the most recent session."""
+    session_path = session_manager.get_latest_session()
+    if not session_path:
+        return jsonify({"error": "no session available"}), 404
+
+    session_dir = Path(session_path)
+    status_path = session_dir / "status.json"
+    summary_path = session_dir / "summary.json"
+
+    status_data = {}
+    summary_data = {}
+
+    if status_path.exists():
+        try:
+            status_data = json.loads(status_path.read_text(encoding="utf-8") or "{}")
+        except Exception as exc:
+            logger.exception("Failed to read status file: %s", exc)
+
+    if summary_path.exists():
+        try:
+            summary_data = json.loads(summary_path.read_text(encoding="utf-8") or "{}")
+        except Exception as exc:
+            logger.exception("Failed to read summary file: %s", exc)
+
+    response = {
+        "session": session_dir.name,
+        "status": status_data,
+    }
+    if summary_data:
+        if "summary" in summary_data:
+            response["summary"] = summary_data["summary"]
+        if "next_question" in summary_data:
+            response["next_question"] = summary_data["next_question"]
+
+    return jsonify(response)
 
 if __name__ == "__main__":
     app.run(debug=FLASK_DEBUG)
