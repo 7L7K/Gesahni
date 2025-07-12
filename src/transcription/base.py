@@ -26,28 +26,36 @@ class TranscriptionService:
         else:
             self.model = None
 
-    def transcribe(self, audio_path: str) -> str:
-        """Transcribe audio file at ``audio_path``."""
+    def transcribe(self, audio_path: str) -> Optional[str]:
+        """Transcribe audio file at ``audio_path``.
+
+        Returns ``None`` if transcription cannot be performed or fails.
+        """
         if self.model is None:
             logger.warning("Transcription requested but model is unavailable")
-            return "(transcription unavailable)"
+            return None
         try:
             result = self.model.transcribe(audio_path)
         except Exception as exc:
             logger.exception("Transcription failed: %s", exc)
-            return ""
+            return None
         return result.get("text", "")
 
-    def transcribe_bytes(self, audio_bytes: bytes) -> str:
-        """Transcribe raw audio bytes."""
+    def transcribe_bytes(self, audio_bytes: bytes) -> Optional[str]:
+        """Transcribe raw audio bytes.
+
+        Returns ``None`` if the bytes cannot be written or transcription fails.
+        """
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             try:
                 tmp.write(audio_bytes)
                 tmp.flush()
                 path = tmp.name
             except Exception as exc:
-                logger.exception("Failed to write temporary audio file: %s", exc)
-                return ""
+                logger.exception(
+                    "Failed to write temporary audio file: %s", exc
+                )
+                return None
         text = self.transcribe(path)
         Path(path).unlink(missing_ok=True)
         return text
