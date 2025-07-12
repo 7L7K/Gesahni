@@ -9,7 +9,6 @@ import atexit
 import shutil
 
 from src.sessions import SessionManager
-
 from src.transcription.base import TranscriptionService
 
 def load_config(path: str) -> dict:
@@ -32,6 +31,9 @@ logger = logging.getLogger(__name__)
 config = load_config("config.yaml")
 transcriber = TranscriptionService(config.get("whisper_model", "base"))
 session_manager = SessionManager(config.get("session_root", "sessions"))
+
+# Flask debug mode configuration
+FLASK_DEBUG = bool(config.get("flask_debug", False))
 
 TMP_SESSION_CREATED = False
 try:
@@ -172,4 +174,4 @@ def upload_chunk():
     return jsonify({'text': text})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=FLASK_DEBUG)
