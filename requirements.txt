@@ -1,3 +1,6 @@
 Flask
 pyyaml
 flask-socketio
+
+openai
+pytest
