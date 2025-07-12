@@ -20,6 +20,7 @@
 <pre id="live-text"></pre>
 <div id="download"></div>
 <pre id="result"></pre>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 <script>
 let stream;
 let recorder;
@@ -47,6 +48,16 @@ function createFilteredStream() {
         ...dest.stream.getAudioTracks()
     ]);
 }
+const socket = io();
+
+socket.on('transcription', data => {
+    if (data.text) liveEl.textContent += data.text + ' ';
+});
+
+socket.on('final_transcript', data => {
+    const resultEl = document.getElementById('result');
+    if (data.text) resultEl.textContent = `\u2713 Transcript ready\n${data.text}`;
+});
 
 async function init() {
     try {
@@ -95,12 +106,7 @@ function handleChunk(e) {
 }
 
 function sendChunk(blob) {
-    const form = new FormData();
-    form.append('file', blob, 'chunk.webm');
-    fetch('/upload', { method: 'POST', body: form })
-        .then(r => r.json())
-        .then(data => { if (data.text) liveEl.textContent += data.text + ' '; })
-        .catch(err => console.error(err));
+    socket.emit('chunk', blob);
 }
 
 function sendAudio(blob) {
@@ -115,8 +121,8 @@ function sendAudio(blob) {
             resultEl.textContent = 'Transcribing…';
             return r.json();
         })
-        .then(data => {
-            resultEl.textContent = `✓ Transcript ready\n${data.text || data.error}`;
+        .then(() => {
+            resultEl.textContent = '✓ Uploaded';
         })
         .catch(err => {
             resultEl.textContent = err;

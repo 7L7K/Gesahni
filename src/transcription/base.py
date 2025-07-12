@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover - whisper is optional
 class TranscriptionService:
     """Transcribe audio files using Whisper if available."""
 
-    def __init__(self, model_name: str = "base") -> None:
+    def __init__(self, model_name: str = "base", enable_diarization: bool = False) -> None:
         self.model: Optional[object]
         if whisper is not None:
             try:
@@ -26,11 +26,17 @@ class TranscriptionService:
         else:
             self.model = None
 
-    def transcribe(self, audio_path: str) -> Optional[str]:
-        """Transcribe audio file at ``audio_path``.
+        self.enable_diarization = enable_diarization
+        self.diarization = None
+        if enable_diarization:
+            try:
+                from .diarization import DiarizationService
+                self.diarization = DiarizationService(self)
+            except Exception as exc:
+                logger.exception("Failed to initialize diarization: %s", exc)
 
-        Returns ``None`` if transcription cannot be performed or fails.
-        """
+    def _transcribe_no_diarization(self, audio_path: str) -> Optional[str]:
+        """Transcribe ``audio_path`` without applying diarization."""
         if self.model is None:
             logger.warning("Transcription requested but model is unavailable")
             return None
@@ -40,6 +46,15 @@ class TranscriptionService:
             logger.exception("Transcription failed: %s", exc)
             return None
         return result.get("text", "")
+
+    def transcribe(self, audio_path: str) -> Optional[str]:
+        """Transcribe audio file at ``audio_path``.
+
+        Returns ``None`` if transcription cannot be performed or fails.
+        """
+        if self.enable_diarization and self.diarization is not None:
+            return self.diarization.diarize(audio_path)
+        return self._transcribe_no_diarization(audio_path)
 
     def transcribe_bytes(self, audio_bytes: bytes) -> Optional[str]:
         """Transcribe raw audio bytes.

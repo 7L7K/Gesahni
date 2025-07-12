@@ -1,2 +1,8 @@
 Flask
 pyyaml
+pyannote.audio
+chromadb
+sentence-transformers
+flask-socketio
+openai
+pytest
