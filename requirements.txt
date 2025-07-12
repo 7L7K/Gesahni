@@ -6,3 +6,5 @@ sentence-transformers
 flask-socketio
 openai
 pytest
+langchain
+langchain-community
