@@ -1,0 +1,43 @@
+from datetime import datetime
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, String, Boolean
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, relationship
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=True)
+    greeting = Column(String, nullable=True)
+    reminder_type = Column(String, nullable=True)
+    is_active = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    voice_samples = relationship("VoiceSample", back_populates="user")
+    face_samples = relationship("FaceSample", back_populates="user")
+
+class VoiceSample(Base):
+    __tablename__ = "voice_samples"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    file_path = Column(String)
+    transcript_path = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="voice_samples")
+
+class FaceSample(Base):
+    __tablename__ = "face_samples"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    left_path = Column(String)
+    right_path = Column(String)
+    front_path = Column(String)
+    embeddings_path = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="face_samples")
