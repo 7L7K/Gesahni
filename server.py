@@ -183,7 +183,6 @@ def upload_chunk():
 
     return jsonify({"text": text})
 
-
 @app.route("/status/latest", methods=["GET"])
 def latest_status():
     """Return status and summary info for the most recent session."""
@@ -221,6 +220,21 @@ def latest_status():
             response["next_question"] = summary_data["next_question"]
 
     return jsonify(response)
+
+@app.route("/status/last-line", methods=["GET"])
+def status_last_line():
+    """Return the most recent line of transcription."""
+    transcript_path = SESSION_DIR / "transcript.txt"
+    text = ""
+    try:
+        if transcript_path.exists():
+            lines = transcript_path.read_text(encoding="utf-8").splitlines()
+            if lines:
+                text = lines[-1]
+    except Exception as exc:
+        logger.exception("Failed to read transcript: %s", exc)
+        return jsonify({"error": f"failed to read transcript: {exc}"}), 500
+    return jsonify({"text": text})
 
 if __name__ == "__main__":
     app.run(debug=FLASK_DEBUG)
