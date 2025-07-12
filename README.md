@@ -103,6 +103,12 @@ The endpoint returns the most similar stored texts as a JSON list.
 
 When diarization is enabled the live transcripts and final `transcript.txt` will include speaker names provided by the diarization model.
 
+### Optional Noise Gate
+
+The web interface offers a **Noise gate** checkbox. When enabled, the audio
+stream passes through a Web Audio `DynamicsCompressorNode` configured as a
+simple gate before being recorded. No additional libraries are required.
+
 ## Contribution Guidelines
 
 Contributions are welcome! To contribute:

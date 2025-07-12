@@ -11,11 +11,12 @@
 <body>
 <h1>Live Camera Feed</h1>
 <video id="video" autoplay playsinline></video>
-<div>
-    <button id="start">Start</button>
-    <button id="stop" disabled>Stop</button>
-    <input id="tags" placeholder="tags" />
-</div>
+    <div>
+        <button id="start">Start</button>
+        <button id="stop" disabled>Stop</button>
+        <input id="tags" placeholder="tags" />
+        <label><input type="checkbox" id="use-filter" /> Noise gate</label>
+    </div>
 <pre id="live-text"></pre>
 <div id="download"></div>
 <pre id="result"></pre>
@@ -25,6 +26,28 @@ let stream;
 let recorder;
 let chunks = [];
 let liveEl = document.getElementById('live-text');
+let audioCtx;
+
+function createFilteredStream() {
+    if (!document.getElementById('use-filter').checked) {
+        return stream;
+    }
+    audioCtx = new AudioContext();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const gate = audioCtx.createDynamicsCompressor();
+    gate.threshold.value = -50;
+    gate.knee.value = 40;
+    gate.ratio.value = 12;
+    gate.attack.value = 0;
+    gate.release.value = 0.25;
+    const dest = audioCtx.createMediaStreamDestination();
+    source.connect(gate);
+    gate.connect(dest);
+    return new MediaStream([
+        ...stream.getVideoTracks(),
+        ...dest.stream.getAudioTracks()
+    ]);
+}
 const socket = io();
 
 socket.on('transcription', data => {
@@ -50,7 +73,9 @@ init();
 document.getElementById('start').onclick = () => {
     chunks = [];
     liveEl.textContent = '';
-    recorder = new MediaRecorder(stream);
+    const procStream = createFilteredStream();
+    document.getElementById('video').srcObject = procStream;
+    recorder = new MediaRecorder(procStream);
     recorder.ondataavailable = handleChunk;
     recorder.onstop = handleStop;
     recorder.start(2000); // collect 2s chunks
@@ -60,6 +85,11 @@ document.getElementById('start').onclick = () => {
 
 document.getElementById('stop').onclick = () => {
     recorder.stop();
+    if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+    }
+    document.getElementById('video').srcObject = stream;
     document.getElementById('stop').disabled = true;
 };
 
