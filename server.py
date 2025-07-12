@@ -181,5 +181,20 @@ def upload_chunk():
 
     return jsonify({"text": text})
 
+@app.route("/status/latest")
+def status_latest() -> 'flask.wrappers.Response':
+    """Return the most recent transcription line."""
+    transcript_path = SESSION_DIR / "transcript.txt"
+    text = ""
+    try:
+        if transcript_path.exists():
+            lines = transcript_path.read_text(encoding="utf-8").splitlines()
+            if lines:
+                text = lines[-1]
+    except Exception as exc:  # pragma: no cover - unexpected I/O errors
+        logger.exception("Failed to read transcript: %s", exc)
+        return jsonify({"error": f"failed to read transcript: {exc}"}), 500
+    return jsonify({"text": text})
+
 if __name__ == "__main__":
     app.run(debug=FLASK_DEBUG)
