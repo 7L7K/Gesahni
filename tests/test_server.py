@@ -44,3 +44,11 @@ def test_transcribe_whisper_unavailable(client, monkeypatch):
     resp = client.post("/transcribe", data=data, content_type="multipart/form-data")
     assert resp.status_code == 500
     assert "error" in resp.get_json()
+
+
+def test_chat_route(client, monkeypatch):
+    monkeypatch.setattr(server.chatbot, "chat", lambda msg: "hi " + msg)
+    resp = client.post("/chat", json={"message": "there"})
+    assert resp.status_code == 200
+    assert resp.get_json() == {"response": "hi there"}
+
