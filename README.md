@@ -15,6 +15,7 @@ Gesahni aims to provide a simple interface for converting audio to text using [W
 - Python 3.8 or later
 - [Whisper](https://github.com/openai/whisper) (optional for transcription)
 - `ffmpeg` (required by Whisper for audio processing)
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) (optional for speaker diarization)
 - `chromadb` and `sentence-transformers` for vector search persistence
 - `Flask-SocketIO` for real-time streaming
 - `openai` (for GPT-4 summarization)
@@ -32,6 +33,10 @@ The script will output the transcribed text to the console.
 ## Configuration
 
 Runtime options are stored in `config.yaml`. The file includes settings for
+audio recording parameters, the Whisper model to load, and the directory used
+for session data. Adjust these values to customize how the assistant operates.
+Setting `enable_diarization` to `true` will load the pyannote diarization
+pipeline so that transcripts include speaker labels.
 audio recording parameters, the Whisper model to load, GPT-4 analysis options,
 and the directory used for session data. Adjust these values to customize how
 the assistant operates.
@@ -55,6 +60,8 @@ python server.py
 The page displays the live camera feed with **Start** and **Stop** buttons. After stopping, the recording is offered as `video.webm` for download. You may also send the captured audio to the backend for transcription (if Whisper is installed) using the **Send Audio** button.
 
 Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are appended to `video.webm`; once the final clip is sent, the server produces `audio.wav`, appends the transcription to `transcript.txt`, and stores any comma-separated tags into `tags.json`. When the transcription of the final clip completes, the server emits a `final_transcript` event to the browser.
+
+If diarization is enabled, lines in `transcript.txt` will be prefixed with the detected speaker label.
 
 ### Live Streaming
 
@@ -93,6 +100,8 @@ curl "http://localhost:5000/search?q=your+query"
 ```
 
 The endpoint returns the most similar stored texts as a JSON list.
+
+When diarization is enabled the live transcripts and final `transcript.txt` will include speaker names provided by the diarization model.
 
 ## Contribution Guidelines
 

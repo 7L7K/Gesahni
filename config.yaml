@@ -8,6 +8,8 @@ audio:
 
 # Whisper model used for transcription
 whisper_model: base
+# Enable speaker diarization using pyannote.audio
+enable_diarization: false
 
 # GPT-4 model used for analysis
 analysis_model: gpt-4
