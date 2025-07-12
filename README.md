@@ -49,6 +49,16 @@ Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are
 
 While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
 
+## Running Tests
+
+After installing the project dependencies, you can run the automated tests with
+
+```bash
+pytest
+```
+
+The tests exercise the Flask server using its built-in test client.
+
 ## Contribution Guidelines
 
 Contributions are welcome! To contribute:
