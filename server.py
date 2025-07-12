@@ -29,7 +29,10 @@ logger = logging.getLogger(__name__)
 
 # ---- Config and Transcriber setup ----
 config = load_config("config.yaml")
-transcriber = TranscriptionService(config.get("whisper_model", "base"))
+transcriber = TranscriptionService(
+    config.get("whisper_model", "base"),
+    enable_diarization=bool(config.get("enable_diarization", False)),
+)
 session_manager = SessionManager(config.get("session_root", "sessions"))
 
 # Flask debug mode configuration

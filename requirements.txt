@@ -1,2 +1,3 @@
 Flask
 pyyaml
+pyannote.audio

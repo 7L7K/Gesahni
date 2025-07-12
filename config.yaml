@@ -8,6 +8,8 @@ audio:
 
 # Whisper model used for transcription
 whisper_model: base
+# Enable speaker diarization using pyannote.audio
+enable_diarization: false
 
 # Directory where session data is stored
 session_root: sessions

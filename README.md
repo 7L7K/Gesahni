@@ -15,6 +15,7 @@ Gesahni aims to provide a simple interface for converting audio to text using [W
 - Python 3.8 or later
 - [Whisper](https://github.com/openai/whisper) (optional for transcription)
 - `ffmpeg` (required by Whisper for audio processing)
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) (optional for speaker diarization)
 
 ## Running the Application
 
@@ -31,6 +32,8 @@ The script will output the transcribed text to the console.
 Runtime options are stored in `config.yaml`. The file includes settings for
 audio recording parameters, the Whisper model to load, and the directory used
 for session data. Adjust these values to customize how the assistant operates.
+Setting `enable_diarization` to `true` will load the pyannote diarization
+pipeline so that transcripts include speaker labels.
 
 ### Web Interface
 
@@ -45,9 +48,13 @@ The page displays the live camera feed with **Start** and **Stop** buttons. Afte
 
 Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are appended to `video.webm`; once the final clip is sent, the server produces `audio.wav`, appends the transcription to `transcript.txt`, and stores any comma-separated tags into `tags.json`.
 
+If diarization is enabled, lines in `transcript.txt` will be prefixed with the detected speaker label.
+
 ### Live Streaming
 
 While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
+
+When diarization is enabled the live transcripts and final `transcript.txt` will include speaker names provided by the diarization model.
 
 ## Contribution Guidelines
 
