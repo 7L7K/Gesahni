@@ -35,3 +35,4 @@ var/
 /sessions/
 .venv/
 .python-version
+node_modules/

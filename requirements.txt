@@ -8,3 +8,13 @@ openai
 pytest
 langchain
 langchain-community
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+cryptography
+celery
+redis
+face_recognition
+numpy
+openai-whisper
