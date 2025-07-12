@@ -61,6 +61,14 @@ def index():
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe_route():
+    global SESSION_DIR
+    try:
+        new_path = Path(session_manager.create_today_session())
+        if new_path != SESSION_DIR:
+            SESSION_DIR = new_path
+    except Exception as exc:
+        logger.exception("Failed to ensure session directory: %s", exc)
+
     if 'file' not in request.files:
         logger.warning("No file provided in request")
         return jsonify({'error': 'missing file'}), 400
@@ -118,6 +126,14 @@ def transcribe_route():
 @app.route('/upload', methods=['POST'])
 def upload_chunk():
     """Handle streaming WebM chunks from the browser."""
+    global SESSION_DIR
+    try:
+        new_path = Path(session_manager.create_today_session())
+        if new_path != SESSION_DIR:
+            SESSION_DIR = new_path
+    except Exception as exc:
+        logger.exception("Failed to ensure session directory: %s", exc)
+
     if 'file' not in request.files:
         logger.warning("No file provided in chunk upload")
         return jsonify({'error': 'missing file'}), 400
