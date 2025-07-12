@@ -5,9 +5,10 @@ import subprocess
 from pathlib import Path
 import yaml
 import json
+import atexit
+import shutil
 
 from src.sessions import SessionManager
-
 from src.transcription.base import TranscriptionService
 
 def load_config(path: str) -> dict:
@@ -30,14 +31,29 @@ logger = logging.getLogger(__name__)
 config = load_config("config.yaml")
 transcriber = TranscriptionService(config.get("whisper_model", "base"))
 session_manager = SessionManager(config.get("session_root", "sessions"))
+
 # Flask debug mode configuration
 FLASK_DEBUG = bool(config.get("flask_debug", False))
+
+TMP_SESSION_CREATED = False
 try:
     SESSION_DIR = Path(session_manager.create_today_session())
     logger.info("Session directory ready at %s", SESSION_DIR)
 except Exception as exc:
     logger.exception("Failed to prepare session directory: %s", exc)
     SESSION_DIR = Path(tempfile.mkdtemp(prefix="session_"))
+    TMP_SESSION_CREATED = True
+    logger.info("Temporary session directory created at %s", SESSION_DIR)
+
+def _cleanup_tmpdir() -> None:
+    if TMP_SESSION_CREATED:
+        try:
+            shutil.rmtree(SESSION_DIR)
+            logger.info("Removed temporary session directory %s", SESSION_DIR)
+        except Exception as exc:
+            logger.warning("Failed to remove temporary session directory %s: %s", SESSION_DIR, exc)
+
+atexit.register(_cleanup_tmpdir)
 
 app = Flask(__name__)
 
@@ -47,6 +63,14 @@ def index():
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe_route():
+    global SESSION_DIR
+    try:
+        new_path = Path(session_manager.create_today_session())
+        if new_path != SESSION_DIR:
+            SESSION_DIR = new_path
+    except Exception as exc:
+        logger.exception("Failed to ensure session directory: %s", exc)
+
     if 'file' not in request.files:
         logger.warning("No file provided in request")
         return jsonify({'error': 'missing file'}), 400
@@ -104,6 +128,14 @@ def transcribe_route():
 @app.route('/upload', methods=['POST'])
 def upload_chunk():
     """Handle streaming WebM chunks from the browser."""
+    global SESSION_DIR
+    try:
+        new_path = Path(session_manager.create_today_session())
+        if new_path != SESSION_DIR:
+            SESSION_DIR = new_path
+    except Exception as exc:
+        logger.exception("Failed to ensure session directory: %s", exc)
+
     if 'file' not in request.files:
         logger.warning("No file provided in chunk upload")
         return jsonify({'error': 'missing file'}), 400
