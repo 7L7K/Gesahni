@@ -12,6 +12,7 @@ import shutil
 from src.sessions import SessionManager
 from src.transcription.base import TranscriptionService
 from src.memory.memory import Memory
+from src.assistant.chat import ChatAssistant
 
 def load_config(path: str) -> dict:
     try:
@@ -37,6 +38,7 @@ transcriber = TranscriptionService(
 )
 session_manager = SessionManager(config.get("session_root", "sessions"))
 memory = Memory()
+chatbot = ChatAssistant(model_name="gpt-4o")
 
 # Flask debug mode configuration
 FLASK_DEBUG = bool(config.get("flask_debug", False))
@@ -156,6 +158,49 @@ def transcribe_route():
     return jsonify({"text": text})
 
 
+@app.route("/upload", methods=["POST"])
+def upload_route():
+    """Upload a short video chunk and return its transcription."""
+    if "file" not in request.files:
+        return jsonify({"error": "missing file"}), 400
+
+    file = request.files["file"]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        video_path = Path(tmpdir) / file.filename
+        audio_path = Path(tmpdir) / "audio.wav"
+        file.save(video_path)
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", str(video_path), str(audio_path)],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except Exception as exc:
+            logger.exception("ffmpeg failed: %s", exc)
+            return jsonify({"error": f"ffmpeg failed: {exc}"}), 500
+
+        text = transcriber.transcribe(str(audio_path))
+        if text is None:
+            return jsonify({"error": "transcription failed"}), 500
+    return jsonify({"text": text})
+
+
+@app.route("/chat", methods=["POST"])
+def chat_route():
+    """Respond to a chat message using the language model."""
+    data = request.get_json(silent=True) or {}
+    message = data.get("message")
+    if not message:
+        return jsonify({"error": "missing message"}), 400
+    try:
+        reply = chatbot.chat(message)
+    except Exception as exc:
+        logger.exception("Chat failed: %s", exc)
+        return jsonify({"error": f"chat failed: {exc}"}), 500
+    return jsonify({"response": reply})
+
+
 @socketio.on("chunk")
 def handle_chunk(data: bytes) -> None:
     """Process a streaming video chunk sent over WebSocket."""
@@ -207,41 +252,18 @@ def handle_chunk(data: bytes) -> None:
 
 @app.route("/status/latest", methods=["GET"])
 def latest_status():
-    """Return status and summary info for the most recent session."""
-    session_path = session_manager.get_latest_session()
-    if not session_path:
-        return jsonify({"error": "no session available"}), 404
-
-    session_dir = Path(session_path)
-    status_path = session_dir / "status.json"
-    summary_path = session_dir / "summary.json"
-
-    status_data = {}
-    summary_data = {}
-
-    if status_path.exists():
-        try:
-            status_data = json.loads(status_path.read_text(encoding="utf-8") or "{}")
-        except Exception as exc:
-            logger.exception("Failed to read status file: %s", exc)
-
-    if summary_path.exists():
-        try:
-            summary_data = json.loads(summary_path.read_text(encoding="utf-8") or "{}")
-        except Exception as exc:
-            logger.exception("Failed to read summary file: %s", exc)
-
-    response = {
-        "session": session_dir.name,
-        "status": status_data,
-    }
-    if summary_data:
-        if "summary" in summary_data:
-            response["summary"] = summary_data["summary"]
-        if "next_question" in summary_data:
-            response["next_question"] = summary_data["next_question"]
-
-    return jsonify(response)
+    """Return the most recent line of the current transcript."""
+    transcript_path = SESSION_DIR / "transcript.txt"
+    text = ""
+    try:
+        if transcript_path.exists():
+            lines = transcript_path.read_text(encoding="utf-8").splitlines()
+            if lines:
+                text = lines[-1]
+    except Exception as exc:
+        logger.exception("Failed to read transcript: %s", exc)
+        return jsonify({"error": f"failed to read transcript: {exc}"}), 500
+    return jsonify({"text": text})
 
 @app.route("/status/last-line", methods=["GET"])
 def status_last_line():
