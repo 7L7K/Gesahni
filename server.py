@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 config = load_config("config.yaml")
 transcriber = TranscriptionService(config.get("whisper_model", "base"))
 session_manager = SessionManager(config.get("session_root", "sessions"))
+# Flask debug mode configuration
+FLASK_DEBUG = bool(config.get("flask_debug", False))
 try:
     SESSION_DIR = Path(session_manager.create_today_session())
     logger.info("Session directory ready at %s", SESSION_DIR)
@@ -140,4 +142,4 @@ def upload_chunk():
     return jsonify({'text': text})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=FLASK_DEBUG)
