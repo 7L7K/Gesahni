@@ -11,6 +11,7 @@ import shutil
 
 from src.sessions import SessionManager
 from src.transcription.base import TranscriptionService
+from src.memory.memory import Memory
 
 def load_config(path: str) -> dict:
     try:
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 config = load_config("config.yaml")
 transcriber = TranscriptionService(config.get("whisper_model", "base"))
 session_manager = SessionManager(config.get("session_root", "sessions"))
+memory = Memory()
 
 # Flask debug mode configuration
 FLASK_DEBUG = bool(config.get("flask_debug", False))
@@ -62,6 +64,18 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/search")
+def search_route():
+    query = request.args.get("q", "")
+    if not query:
+        return jsonify({"error": "missing query"}), 400
+    try:
+        results = memory.search(query)
+    except Exception as exc:
+        logger.exception("Search failed: %s", exc)
+        return jsonify({"error": f"search failed: {exc}"}), 500
+    return jsonify({"results": results})
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe_route():
@@ -112,6 +126,10 @@ def transcribe_route():
         with open(transcript_path, "a", encoding="utf-8") as tf:
             tf.write(text + "\n")
         logger.info("Transcription complete for %s", file.filename)
+        try:
+            memory.add(text)
+        except Exception as exc:
+            logger.warning("Failed to store transcript in memory: %s", exc)
         socketio.emit("final_transcript", {"text": text})
 
         if tags:
@@ -173,6 +191,10 @@ def handle_chunk(data: bytes) -> None:
             text = transcriber.transcribe(str(audio_path))
             if text is None:
                 raise RuntimeError("transcription returned None")
+            try:
+                memory.add(text)
+            except Exception as exc:
+                logger.warning("Failed to store transcript in memory: %s", exc)
         except Exception as exc:
             logger.exception("Chunk transcription failed: %s", exc)
             emit("transcription", {"error": str(exc)})

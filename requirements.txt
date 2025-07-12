@@ -1,6 +1,7 @@
 Flask
 pyyaml
+chromadb
+sentence-transformers
 flask-socketio
-
 openai
 pytest
