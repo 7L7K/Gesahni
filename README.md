@@ -1,70 +1,73 @@
-# Gesahni
+Gesahni
 
-## Project Goals
-
-Gesahni aims to provide a simple interface for converting audio to text using [Whisper](https://github.com/openai/whisper). The project serves as a starting point for experimenting with speech-to-text workflows in Python.
-
-## Installation
-
-1. Clone this repository.
-2. Create and activate a Python virtual environment.
-3. Install dependencies with `pip install -r requirements.txt`.
-
-## Dependencies
-
-- Python 3.8 or later
-- [Whisper](https://github.com/openai/whisper) (optional for transcription)
-- `ffmpeg` (required by Whisper for audio processing)
-
-## Running the Application
-
-After installing dependencies, you can run the main script with an audio file as input:
-
-```bash
-python main.py path/to/audiofile
-```
-
-The script will output the transcribed text to the console.
-
-## Configuration
-
-Runtime options are stored in `config.yaml`. The file includes settings for
-audio recording parameters, the Whisper model to load, and the directory used
-for session data. Adjust these values to customize how the assistant operates.
-
-### Web Interface
-
-The project also includes a minimal web interface for recording video with audio.
-Run the Flask server and open `http://localhost:5000` in a browser:
-
-```bash
+Project Goals
+Gesahni provides a simple interface for converting audio to text using Whisper. It's designed as a starting point for experimenting with speech-to-text workflows in Python — with local session logging, optional tagging, and a minimal web interface.
+Installation
+Clone this repository.
+Create and activate a Python virtual environment.
+Install dependencies:
+pip install -r requirements.txt
+Dependencies
+Python 3.8 or later
+ffmpeg — required for audio extraction
+OpenAI Whisper — required for transcription (optional but recommended)
+Running the Application (CLI)
+After installing dependencies, run the main script with an audio file:
+python main.py path/to/audio.wav
+This will:
+Create a session folder in sessions/YYYY-MM-DD/
+Transcribe the file with Whisper
+Save the text in transcript.txt and print it to the console
+Configuration
+Runtime settings live in config.yaml, including:
+Whisper model selection (base, medium, etc.)
+Session directory path
+Debug and logging options
+Web Interface
+Gesahni also includes a minimal browser-based recording and transcription tool.
+To launch it:
 python server.py
-```
-
-The page displays the live camera feed with **Start** and **Stop** buttons. After stopping, the recording is offered as `video.webm` for download. You may also send the captured audio to the backend for transcription (if Whisper is installed) using the **Send Audio** button.
-
-Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are appended to `video.webm`; once the final clip is sent, the server produces `audio.wav`, appends the transcription to `transcript.txt`, and stores any comma-separated tags into `tags.json`.
-
-### Live Streaming
-
-While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
-
-## Running Tests
-
-After installing the project dependencies, you can run the automated tests with
-
-```bash
+Then open http://localhost:5000 in your browser.
+Features
+Webcam + mic recording via MediaRecorder
+Start/Stop buttons to control capture
+Live preview
+Upload to backend for audio extraction and transcription
+Upload Workflow
+Incoming chunks are saved to sessions/YYYY-MM-DD/video.webm
+After the final clip:
+audio.wav is extracted
+Whisper transcribes the audio → transcript.txt
+Any provided tags → tags.json
+Live Streaming Transcription
+While recording, short WebM chunks are uploaded to /upload.
+Each chunk is transcribed on the server
+Live captions appear beneath the video in real time
+Session Status API
+When processing finishes:
+The server writes status.json with:
+{
+  "whisper_done": true,
+  "gpt_done": false
+}
+A background worker (optional) can then:
+Summarize the transcript → summary.json
+Update the status file to:
+{
+  "whisper_done": true,
+  "gpt_done": true
+}
+Check /status/latest for:
+Transcription status
+Generated summary (if available)
+Suggested follow-up question
+Running Tests
+To run unit tests:
 pytest
-```
-
-The tests exercise the Flask server using its built-in test client.
-
-## Contribution Guidelines
-
-Contributions are welcome! To contribute:
-
-1. Fork this repository and create a new branch for your change.
-2. Make your modifications and include clear commit messages.
-3. Open a pull request describing your changes.
-
-Please ensure your code follows standard Python style conventions and includes appropriate documentation.
+Tests use Flask’s built-in test client to validate core behavior.
+Contribution Guidelines
+Contributions welcome!
+Fork this repo and make a new branch.
+Make your changes with clear, descriptive commits.
+Open a pull request summarizing your updates.
+Please follow standard Python style (PEP8) and include helpful documentation where needed.
