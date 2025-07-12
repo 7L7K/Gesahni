@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from flask_socketio import SocketIO, emit
 import logging
 import tempfile
 import subprocess
@@ -56,6 +57,7 @@ def _cleanup_tmpdir() -> None:
 atexit.register(_cleanup_tmpdir)
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route("/")
 def index():
@@ -110,6 +112,7 @@ def transcribe_route():
         with open(transcript_path, "a", encoding="utf-8") as tf:
             tf.write(text + "\n")
         logger.info("Transcription complete for %s", file.filename)
+        socketio.emit("final_transcript", {"text": text})
 
         if tags:
             try:
@@ -131,9 +134,10 @@ def transcribe_route():
 
     return jsonify({"text": text})
 
-@app.route("/upload", methods=["POST"])
-def upload_chunk():
-    """Handle streaming WebM chunks from the browser."""
+
+@socketio.on("chunk")
+def handle_chunk(data: bytes) -> None:
+    """Process a streaming video chunk sent over WebSocket."""
     global SESSION_DIR
     try:
         new_path = Path(session_manager.create_today_session())
@@ -142,14 +146,6 @@ def upload_chunk():
     except Exception as exc:
         logger.exception("Failed to ensure session directory: %s", exc)
 
-    if "file" not in request.files:
-        logger.warning("No file provided in chunk upload")
-        return jsonify({"error": "missing file"}), 400
-
-    file = request.files["file"]
-    logger.info("Received chunk %s", file.filename)
-
-    data = file.read()
     session_video = SESSION_DIR / "video.webm"
     try:
         with open(session_video, "ab") as dest:
@@ -171,17 +167,18 @@ def upload_chunk():
             )
         except Exception as exc:
             logger.exception("Failed to process chunk: %s", exc)
-            return jsonify({"error": f"processing failed: {exc}"}), 500
-
+            emit("transcription", {"error": str(exc)})
+            return
         try:
             text = transcriber.transcribe(str(audio_path))
             if text is None:
                 raise RuntimeError("transcription returned None")
         except Exception as exc:
             logger.exception("Chunk transcription failed: %s", exc)
-            return jsonify({"error": f"transcription failed: {exc}"}), 500
+            emit("transcription", {"error": str(exc)})
+            return
+    emit("transcription", {"text": text})
 
-    return jsonify({"text": text})
 
 @app.route("/status/latest", methods=["GET"])
 def latest_status():
@@ -237,4 +234,4 @@ def status_last_line():
     return jsonify({"text": text})
 
 if __name__ == "__main__":
-    app.run(debug=FLASK_DEBUG)
+    socketio.run(app, debug=FLASK_DEBUG)
