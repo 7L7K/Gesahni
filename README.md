@@ -49,6 +49,12 @@ Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are
 
 While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
 
+### Optional Noise Gate
+
+The web interface offers a **Noise gate** checkbox. When enabled, the audio
+stream passes through a Web Audio `DynamicsCompressorNode` configured as a
+simple gate before being recorded. No additional libraries are required.
+
 ## Contribution Guidelines
 
 Contributions are welcome! To contribute:
