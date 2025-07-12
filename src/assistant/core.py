@@ -4,6 +4,7 @@ from src.memory.memory import Memory
 
 logger = logging.getLogger(__name__)
 
+
 class Assistant:
     """Main assistant class coordinating subsystems."""
 
@@ -15,5 +16,8 @@ class Assistant:
     def process_audio(self, audio_path: str) -> str:
         logger.info("Processing audio file %s", audio_path)
         text = self.transcription.transcribe(audio_path)
-        self.memory.add(text)
-        return text
+        if text is not None:
+            self.memory.add(text)
+            return text
+        logger.warning("Transcription failed for %s", audio_path)
+        return ""
