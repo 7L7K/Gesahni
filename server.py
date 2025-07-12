@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from flask_socketio import SocketIO, emit
 import logging
 import tempfile
 import subprocess
@@ -58,6 +59,7 @@ def _cleanup_tmpdir() -> None:
 atexit.register(_cleanup_tmpdir)
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route("/")
 def index():
@@ -128,6 +130,7 @@ def transcribe_route():
             memory.add(text)
         except Exception as exc:
             logger.warning("Failed to store transcript in memory: %s", exc)
+        socketio.emit("final_transcript", {"text": text})
 
         if tags:
             try:
@@ -141,15 +144,18 @@ def transcribe_route():
             if new_tags:
                 existing.extend(new_tags)
                 tags_path.write_text(json.dumps(existing), encoding="utf-8")
+        # Mark Whisper transcription as done
+        session_manager.write_status(str(SESSION_DIR), True, False)
     except Exception as exc:
         logger.exception("Transcription failed: %s", exc)
         return jsonify({"error": f"transcription failed: {exc}"}), 500
 
     return jsonify({"text": text})
 
-@app.route("/upload", methods=["POST"])
-def upload_chunk():
-    """Handle streaming WebM chunks from the browser."""
+
+@socketio.on("chunk")
+def handle_chunk(data: bytes) -> None:
+    """Process a streaming video chunk sent over WebSocket."""
     global SESSION_DIR
     try:
         new_path = Path(session_manager.create_today_session())
@@ -158,14 +164,6 @@ def upload_chunk():
     except Exception as exc:
         logger.exception("Failed to ensure session directory: %s", exc)
 
-    if "file" not in request.files:
-        logger.warning("No file provided in chunk upload")
-        return jsonify({"error": "missing file"}), 400
-
-    file = request.files["file"]
-    logger.info("Received chunk %s", file.filename)
-
-    data = file.read()
     session_video = SESSION_DIR / "video.webm"
     try:
         with open(session_video, "ab") as dest:
@@ -187,8 +185,8 @@ def upload_chunk():
             )
         except Exception as exc:
             logger.exception("Failed to process chunk: %s", exc)
-            return jsonify({"error": f"processing failed: {exc}"}), 500
-
+            emit("transcription", {"error": str(exc)})
+            return
         try:
             text = transcriber.transcribe(str(audio_path))
             if text is None:
@@ -199,9 +197,63 @@ def upload_chunk():
                 logger.warning("Failed to store transcript in memory: %s", exc)
         except Exception as exc:
             logger.exception("Chunk transcription failed: %s", exc)
-            return jsonify({"error": f"transcription failed: {exc}"}), 500
+            emit("transcription", {"error": str(exc)})
+            return
+    emit("transcription", {"text": text})
 
+
+@app.route("/status/latest", methods=["GET"])
+def latest_status():
+    """Return status and summary info for the most recent session."""
+    session_path = session_manager.get_latest_session()
+    if not session_path:
+        return jsonify({"error": "no session available"}), 404
+
+    session_dir = Path(session_path)
+    status_path = session_dir / "status.json"
+    summary_path = session_dir / "summary.json"
+
+    status_data = {}
+    summary_data = {}
+
+    if status_path.exists():
+        try:
+            status_data = json.loads(status_path.read_text(encoding="utf-8") or "{}")
+        except Exception as exc:
+            logger.exception("Failed to read status file: %s", exc)
+
+    if summary_path.exists():
+        try:
+            summary_data = json.loads(summary_path.read_text(encoding="utf-8") or "{}")
+        except Exception as exc:
+            logger.exception("Failed to read summary file: %s", exc)
+
+    response = {
+        "session": session_dir.name,
+        "status": status_data,
+    }
+    if summary_data:
+        if "summary" in summary_data:
+            response["summary"] = summary_data["summary"]
+        if "next_question" in summary_data:
+            response["next_question"] = summary_data["next_question"]
+
+    return jsonify(response)
+
+@app.route("/status/last-line", methods=["GET"])
+def status_last_line():
+    """Return the most recent line of transcription."""
+    transcript_path = SESSION_DIR / "transcript.txt"
+    text = ""
+    try:
+        if transcript_path.exists():
+            lines = transcript_path.read_text(encoding="utf-8").splitlines()
+            if lines:
+                text = lines[-1]
+    except Exception as exc:
+        logger.exception("Failed to read transcript: %s", exc)
+        return jsonify({"error": f"failed to read transcript: {exc}"}), 500
     return jsonify({"text": text})
 
 if __name__ == "__main__":
-    app.run(debug=FLASK_DEBUG)
+    socketio.run(app, debug=FLASK_DEBUG)
