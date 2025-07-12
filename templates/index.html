@@ -15,7 +15,6 @@
     <button id="start">Start</button>
     <button id="stop" disabled>Stop</button>
     <input id="tags" placeholder="tags" />
-    <button id="transcribe" disabled>Send Audio</button>
 </div>
 <pre id="live-text"></pre>
 <div id="download"></div>
@@ -55,18 +54,7 @@ document.getElementById('stop').onclick = () => {
 
 function handleStop() {
     const blob = new Blob(chunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'video.webm';
-    a.textContent = 'Download recording';
-    const div = document.getElementById('download');
-    div.innerHTML = '';
-    div.appendChild(a);
-    const transBtn = document.getElementById('transcribe');
-    transBtn.disabled = false;
-    transBtn.onclick = () => sendAudio(blob);
-    document.getElementById('start').disabled = false;
+    sendAudio(blob);
 }
 
 function handleChunk(e) {
@@ -90,10 +78,22 @@ function sendAudio(blob) {
     form.append('file', blob, 'video.webm');
     const tags = document.getElementById('tags').value;
     if (tags) form.append('tags', tags);
+    const resultEl = document.getElementById('result');
+    resultEl.textContent = 'Uploading…';
     fetch('/transcribe', { method: 'POST', body: form })
-        .then(r => r.json())
-        .then(data => { document.getElementById('result').textContent = data.text || data.error; })
-        .catch(err => { document.getElementById('result').textContent = err; });
+        .then(r => {
+            resultEl.textContent = 'Transcribing…';
+            return r.json();
+        })
+        .then(data => {
+            resultEl.textContent = `✓ Transcript ready\n${data.text || data.error}`;
+        })
+        .catch(err => {
+            resultEl.textContent = err;
+        })
+        .finally(() => {
+            document.getElementById('start').disabled = false;
+        });
 }
 </script>
 </body>
