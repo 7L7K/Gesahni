@@ -1,2 +1,4 @@
 Flask
 pyyaml
+chromadb
+sentence-transformers

@@ -15,6 +15,7 @@ Gesahni aims to provide a simple interface for converting audio to text using [W
 - Python 3.8 or later
 - [Whisper](https://github.com/openai/whisper) (optional for transcription)
 - `ffmpeg` (required by Whisper for audio processing)
+- `chromadb` and `sentence-transformers` for vector search persistence
 
 ## Running the Application
 
@@ -48,6 +49,17 @@ Uploaded recordings are stored under `sessions/YYYY-MM-DD/`. Incoming chunks are
 ### Live Streaming
 
 While recording, the application now uploads short WebM chunks to `/upload`. Each chunk is transcribed on the server and the text is shown live beneath the video element.
+
+### Querying Stored Transcripts
+
+All transcriptions are embedded and stored in a persistent vector database. Run
+the Flask server and query previous transcripts using the `/search` endpoint:
+
+```bash
+curl "http://localhost:5000/search?q=your+query"
+```
+
+The endpoint returns the most similar stored texts as a JSON list.
 
 ## Contribution Guidelines
 
