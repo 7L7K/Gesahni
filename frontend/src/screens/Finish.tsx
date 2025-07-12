@@ -1,0 +1,23 @@
+import { useContext, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { EnrollContext } from '../context/EnrollContext'
+
+export default function Finish() {
+  const { userId } = useContext(EnrollContext)!
+  const nav = useNavigate()
+  const [audioUrl, setAudioUrl] = useState('')
+
+  useEffect(() => {
+    fetch(`/enroll/complete/${userId}`, { method: 'POST' })
+      .then(r => r.json())
+      .then(d => setAudioUrl(d.audio_url))
+  }, [])
+
+  return (
+    <div className="p-4 text-center space-y-2">
+      <p>Enrollment complete!</p>
+      {audioUrl && <audio controls src={audioUrl} autoPlay />}
+      <button className="px-4 py-2 bg-green-500 text-white" onClick={() => nav('/')}>Start Using Assistant</button>
+    </div>
+  )
+}

@@ -37,3 +37,4 @@ var/
 .python-version
 .zip
 Archive.zip
+node_modules/
