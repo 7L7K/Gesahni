@@ -9,6 +9,8 @@ from ..database import get_session
 from ..models import User, VoiceSample, FaceSample
 from ..utils.crypto import encrypt_file
 from ..utils.whisper_worker import transcribe_voice
+from ..utils import tts
+from datetime import date
 
 import numpy as np
 import face_recognition
@@ -101,6 +103,15 @@ async def complete_enroll(user_id: str, db: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail='user not found')
     user.is_active = True
     db.commit()
-    # stub call to external TTS service
-    audio_url = f"https://example.com/greet_{user_id}.mp3"
+    today = date.today().isoformat()
+    session_dir = Path('sessions') / f"{today}-{user_id}"
+    session_dir.mkdir(parents=True, exist_ok=True)
+    out_path = session_dir / 'welcome.mp3'
+    greeting = user.name or 'there'
+    try:
+        tts.generate(f"Welcome {greeting}!", out_path.as_posix())
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audio_url = f"/sessions/{today}-{user_id}/welcome.mp3"
     return {"audio_url": audio_url}
