@@ -1,37 +1,86 @@
-version: '3'
+version: '3.9'
+
 services:
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
   redis:
     image: redis:7
+    networks:
+      - backend
+    volumes:
+      - redis-data:/data
+
+  tusd:
+    image: tusproject/tusd:latest
+    command: ["/tusd", "-upload-dir", "/uploads"]
     ports:
-      - "6379:6379"
-  api:
+      - "1080:1080"
+    volumes:
+      - uploads:/uploads
+    networks:
+      - backend
+
+  insightface-rest:
+    image: ghcr.io/deepinsight/insightface-rest:latest
+    ports:
+      - "18080:18080"
+    networks:
+      - backend
+
+  fastapi-api:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - .:/app
+      - ./config.yaml:/app/config.yaml
+      - uploads:/uploads
+      - sessions:/sessions
     depends_on:
-      - db
       - redis
-    environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db/postgres
-      - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
+      - tusd
+      - insightface-rest
+    networks:
+      - backend
+    ports:
+      - "8000:8000"
+
+  flask-ui:
+    build: .
+    command: python server.py
+    volumes:
+      - .:/app
+      - ./config.yaml:/app/config.yaml
+      - uploads:/uploads
+      - sessions:/sessions
+    depends_on:
+      - redis
+      - fastapi-api
+      - tusd
+      - insightface-rest
+    networks:
+      - backend
+    ports:
+      - "5000:5000"
+
   worker:
     build:
       context: .
       target: worker
+    command: celery -A app.utils.whisper_worker.celery_app worker --loglevel=info
     volumes:
       - .:/worker
+      - ./config.yaml:/worker/config.yaml
+      - uploads:/uploads
+      - sessions:/sessions
     depends_on:
       - redis
-      - db
-    environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db/postgres
-      - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
+      - fastapi-api
+      - insightface-rest
+    networks:
+      - backend
+
+volumes:
+  uploads:
+  sessions:
+  redis-data:
+
+networks:
+  backend:
