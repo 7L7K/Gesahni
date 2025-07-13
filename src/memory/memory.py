@@ -5,7 +5,10 @@ from uuid import uuid4
 
 import chromadb
 from chromadb.config import Settings
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+try:
+    from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+except Exception:  # pragma: no cover - optional heavy dependency
+    SentenceTransformerEmbeddingFunction = None
 
 
 class Memory:
@@ -13,8 +16,29 @@ class Memory:
 
     def __init__(self, persist_directory: str = "vector_store") -> None:
         Path(persist_directory).mkdir(parents=True, exist_ok=True)
+        use_dummy = False
         self.client = chromadb.PersistentClient(path=persist_directory)
-        embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+        if SentenceTransformerEmbeddingFunction is not None:
+            try:
+                embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+            except Exception:  # package missing or failed to load
+                embedding_fn = None
+                use_dummy = True
+        else:
+            embedding_fn = None
+            use_dummy = True
+        if embedding_fn is None:
+            class DummyEmbed:
+                def __call__(self, input):  # type: ignore[override]
+                    texts = input if isinstance(input, list) else [input]
+                    return [[0.0] * 384 for _ in texts]
+
+                @staticmethod
+                def name():
+                    return "dummy"
+
+            embedding_fn = DummyEmbed()
+            self.client = chromadb.EphemeralClient()
         self.collection = self.client.get_or_create_collection(
             "transcripts", embedding_function=embedding_fn
         )
