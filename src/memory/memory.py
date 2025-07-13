@@ -5,7 +5,6 @@ from uuid import uuid4
 
 import chromadb
 from chromadb.config import Settings
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 
 class Memory:
@@ -14,10 +13,7 @@ class Memory:
     def __init__(self, persist_directory: str = "vector_store") -> None:
         Path(persist_directory).mkdir(parents=True, exist_ok=True)
         self.client = chromadb.PersistentClient(path=persist_directory)
-        embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-        self.collection = self.client.get_or_create_collection(
-            "transcripts", embedding_function=embedding_fn
-        )
+        self.collection = self.client.get_or_create_collection("transcripts")
 
     def add(self, text: str) -> None:
         """Embed and store a text entry."""
