@@ -41,3 +41,9 @@ class FaceSample(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="face_samples")
+
+class ConsentLog(Base):
+    __tablename__ = "consent_log"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_agent = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)

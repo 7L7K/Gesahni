@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import enroll
+from .routes import enroll, consent
 
 app = FastAPI()
 
@@ -16,3 +16,4 @@ app.add_middleware(
 )
 
 app.include_router(enroll.router, prefix="/enroll")
+app.include_router(consent.router, prefix="/consent")

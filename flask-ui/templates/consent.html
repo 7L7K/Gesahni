@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Consent</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 2rem; text-align: center; }
+        p { font-size: 1.25rem; line-height: 1.6; }
+        button { font-size: 1.25rem; padding: 0.5rem 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Research Consent</h1>
+    <p id="consent-text">
+        By continuing, you agree that your voice and video recordings may be
+        processed and stored for research purposes. Your data may be used to
+        improve speech and facial recognition models. If you do not agree,
+        please close this page.
+    </p>
+    <div class="space-y-2">
+        <button id="read">🔊 Read Aloud</button>
+        <button id="agree">I Agree</button>
+    </div>
+    <script>
+    const text = document.getElementById('consent-text').innerText;
+    document.getElementById('read').onclick = () => {
+        const utter = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(utter);
+    };
+    document.getElementById('agree').onclick = async () => {
+        try {
+            await fetch('/consent', { method: 'POST' });
+            localStorage.setItem('consent_given', 'yes');
+            window.location.href = '/enroll';
+        } catch (err) {
+            alert('Failed to record consent');
+        }
+    };
+    </script>
+</body>
+</html>
