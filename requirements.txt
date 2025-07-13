@@ -19,3 +19,4 @@ face_recognition
 numpy
 openai-whisper
 gtts
+requests
