@@ -2,7 +2,6 @@ import os
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
-from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import requests
@@ -46,9 +45,15 @@ class FaceRequest(BaseModel):
     urls: list[str]
 
 @router.post('/voice/{user_id}')
-async def enroll_voice(user_id: str, file: UploadFile = File(...), db: Session = Depends(get_session)):
+async def enroll_voice(
+    user_id: str, file: UploadFile | None = File(None), db: Session = Depends(get_session)
+):
+    if file is None:
+        raise HTTPException(status_code=400, detail='missing file')
     if file.content_type != 'audio/wav':
         raise HTTPException(status_code=400, detail='invalid file')
+    if db.query(VoiceSample).filter_by(user_id=user_id).first():
+        raise HTTPException(status_code=409, detail='already enrolled')
     user_dir = MEDIA_ROOT / user_id
     user_dir.mkdir(parents=True, exist_ok=True)
     raw_path = user_dir / 'voice.wav'
@@ -66,13 +71,17 @@ async def enroll_voice(user_id: str, file: UploadFile = File(...), db: Session =
 @router.post('/face/{user_id}')
 async def enroll_face(
     user_id: str,
-    front: UploadFile = File(...),
-    left: UploadFile = File(...),
-    right: UploadFile = File(...),
+    front: UploadFile | None = File(None),
+    left: UploadFile | None = File(None),
+    right: UploadFile | None = File(None),
     db: Session = Depends(get_session),
 ):
+    if not front or not left or not right:
+        raise HTTPException(status_code=400, detail='missing images')
     user_dir = MEDIA_ROOT / user_id
     user_dir.mkdir(parents=True, exist_ok=True)
+    if db.query(FaceSample).filter_by(user_id=user_id).first():
+        raise HTTPException(status_code=409, detail='already enrolled')
     paths = {}
     for name, file in [('front', front), ('left', left), ('right', right)]:
         if file.content_type != 'image/jpeg':
@@ -121,6 +130,8 @@ async def complete_enroll(user_id: str, db: Session = Depends(get_session)):
     user = db.query(User).filter_by(id=user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail='user not found')
+    if user.is_active:
+        raise HTTPException(status_code=409, detail='already active')
     user.is_active = True
     db.commit()
     today = date.today().isoformat()

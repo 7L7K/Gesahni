@@ -10,6 +10,35 @@ Gesahni aims to provide a simple interface for converting audio to text using [W
 2. Create and activate a Python virtual environment.
 3. Install dependencies with `pip install -r requirements.txt`.
 
+## Setup
+
+Docker Compose is provided for local development:
+
+```bash
+docker-compose up --build
+```
+
+The React frontend can be started separately:
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+### Environment variables
+
+- `DATABASE_URL` – database connection string
+- `CELERY_BROKER` – Redis URL used by Celery
+- `CELERY_BACKEND` – result backend for Celery
+- `FERNET_KEY` – key used for encrypting uploaded media
+
+### How to enroll
+
+1. Start the services with Docker Compose.
+2. Open the frontend at http://localhost:5173.
+3. Record your voice sample and submit.
+4. Capture face images from the webcam.
+5. Provide preferences and complete enrollment.
+
 ## Dependencies
 
 - Python 3.8 or later
@@ -29,6 +58,9 @@ python main.py path/to/audiofile
 ```
 
 The script will output the transcribed text to the console.
+
+The FastAPI service exposes `/health` for basic status checks and
+Prometheus metrics at `/metrics`.
 
 ## Configuration
 
