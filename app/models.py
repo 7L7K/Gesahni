@@ -23,7 +23,6 @@ class User(Base):
     voiceprints        = relationship("VoicePrint", back_populates="user")
     faceprints         = relationship("FacePrint", back_populates="user")
 
-
 class VoiceSample(Base):
     __tablename__ = "voice_samples"
     id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -33,7 +32,6 @@ class VoiceSample(Base):
     created_at      = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="voice_samples")
-
 
 class FaceSample(Base):
     __tablename__ = "face_samples"
@@ -47,6 +45,11 @@ class FaceSample(Base):
 
     user = relationship("User", back_populates="face_samples")
 
+class ConsentLog(Base):
+    __tablename__ = "consent_log"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_agent = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
 class EnrollmentStatus(Base):
     __tablename__ = "enrollment_statuses"
@@ -58,7 +61,6 @@ class EnrollmentStatus(Base):
 
     user = relationship("User", back_populates="enrollment_status")
 
-
 class VoicePrint(Base):
     __tablename__ = "voiceprints"
     id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -67,7 +69,6 @@ class VoicePrint(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="voiceprints")
-
 
 class FacePrint(Base):
     __tablename__ = "faceprints"
