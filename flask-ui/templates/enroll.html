@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Enrollment</title>
+  <link rel="stylesheet" href="{{ url_for('flask_ui.static', filename='css/enroll.css') }}">
+  <script src="https://releases.transloadit.com/uppy/v3.6.1/uppy.min.js"></script>
+</head>
+<body>
+  <div id="voice-step" class="step">
+    <p>Hold the mic to record your voice</p>
+    <button id="mic-btn">🎤</button>
+    <span id="countdown"></span>
+    <div id="voice-fallback" class="hidden">
+      <p>Or upload an audio file:</p>
+      <input type="file" id="voice-file" accept="audio/*">
+      <button id="voice-upload">Upload</button>
+    </div>
+  </div>
+
+  <div id="face-step" class="step hidden">
+    <video id="video" autoplay playsinline width="320" height="240"></video>
+    <canvas id="canvas" width="640" height="480" class="hidden"></canvas>
+    <p id="face-prompt"></p>
+    <button id="capture-btn">Capture</button>
+    <div id="face-fallback" class="hidden">
+      <p>Upload front, left and right photos:</p>
+      <input type="file" id="front-file" accept="image/jpeg"><br>
+      <input type="file" id="left-file" accept="image/jpeg"><br>
+      <input type="file" id="right-file" accept="image/jpeg"><br>
+      <button id="face-upload">Upload</button>
+    </div>
+  </div>
+
+  <div id="status-step" class="step hidden">
+    <p>Processing...</p>
+  </div>
+
+  <script>
+    const CONFIG = { TUSD_URL: "{{ config.get('TUSD_URL', '') }}", user_id: "{{ user_id }}" };
+  </script>
+  <script src="{{ url_for('flask_ui.static', filename='js/enroll.js') }}"></script>
+</body>
+</html>
