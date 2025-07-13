@@ -1,0 +1,4 @@
+.step { margin: 1rem auto; text-align: center; }
+.hidden { display: none; }
+#video { border: 1px solid #ccc; }
+#mic-btn, #capture-btn { font-size: 2rem; padding: 0.5rem 1rem; }

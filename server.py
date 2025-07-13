@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Blueprint
 from flask_socketio import SocketIO, emit
 import logging
 import tempfile
@@ -65,6 +65,19 @@ atexit.register(_cleanup_tmpdir)
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+flask_ui = Blueprint(
+    "flask_ui",
+    __name__,
+    template_folder="flask-ui/templates",
+    static_folder="flask-ui/static",
+)
+
+@flask_ui.route("/enroll/<user_id>")
+def enroll_page(user_id: str):
+    return render_template("enroll.html", user_id=user_id, config=config)
+
+app.register_blueprint(flask_ui)
 
 @app.route("/")
 def index():

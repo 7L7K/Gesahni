@@ -42,3 +42,15 @@ def transcribe_voice(file_path: str, user_id: str) -> None:
         os.remove(temp_path)
     except FileNotFoundError:
         pass
+
+@celery_app.task
+def speaker_job(file_path: str, user_id: str) -> None:
+    """Placeholder task for speaker enrollment."""
+    # Actual speaker model training would happen here
+    return None
+
+@celery_app.task
+def face_job(file_paths: list[str], user_id: str) -> None:
+    """Placeholder task for face enrollment."""
+    # Face embedding and storage would happen here
+    return None
