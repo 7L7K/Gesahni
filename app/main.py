@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .routes import enroll, consent
 
@@ -14,6 +15,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/sessions", StaticFiles(directory="sessions"), name="sessions")
 
 app.include_router(enroll.router, prefix="/enroll")
 app.include_router(consent.router, prefix="/consent")

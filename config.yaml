@@ -22,3 +22,17 @@ flask_debug: false
 
 # File tracking the current processing status
 status_file: status.json
+
+# Media base directories
+media:
+  uploads: uploads
+  sessions: sessions
+
+# Redis connection
+redis_url: redis://localhost:6379/0
+
+# InsightFace API endpoint
+insightface_endpoint: http://localhost:18080
+
+# TTS engine choice (piper or voicevox)
+tts_engine: piper

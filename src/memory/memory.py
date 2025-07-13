@@ -5,9 +5,14 @@ from uuid import uuid4
 
 try:
     import chromadb
-    from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-except Exception:  # pragma: no cover - optional dependency
+    from chromadb.config import Settings
+    try:
+        from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+    except Exception:
+        SentenceTransformerEmbeddingFunction = None
+except ImportError:
     chromadb = None
+    SentenceTransformerEmbeddingFunction = None
 
 
 class Memory:
@@ -15,6 +20,7 @@ class Memory:
 
     def __init__(self, persist_directory: str = "vector_store") -> None:
         Path(persist_directory).mkdir(parents=True, exist_ok=True)
+
         if chromadb is None:
             # simple in-memory fallback
             class _DummyCollection:
@@ -26,8 +32,28 @@ class Memory:
                     return {"documents": [self.docs[:n_results]]}
             self.collection = _DummyCollection()
         else:
-            self.client = chromadb.PersistentClient(path=persist_directory)
-            embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+            embedding_fn = None
+            if SentenceTransformerEmbeddingFunction is not None:
+                try:
+                    embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+                except Exception:
+                    embedding_fn = None
+
+            if embedding_fn is None:
+                class DummyEmbed:
+                    def __call__(self, inputs):
+                        texts = inputs if isinstance(inputs, list) else [inputs]
+                        return [[0.0] * 384 for _ in texts]
+
+                    @staticmethod
+                    def name():
+                        return "dummy"
+
+                embedding_fn = DummyEmbed()
+                self.client = chromadb.EphemeralClient()
+            else:
+                self.client = chromadb.PersistentClient(path=persist_directory)
+
             self.collection = self.client.get_or_create_collection(
                 "transcripts", embedding_function=embedding_fn
             )
