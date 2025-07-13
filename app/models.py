@@ -17,57 +17,53 @@ class User(Base):
     is_active = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    voice_samples = relationship("VoiceSample", back_populates="user")
-    face_samples = relationship("FaceSample", back_populates="user")
-    enrollment_status = relationship(
-        "EnrollmentStatus", back_populates="user", uselist=False
-    )
-    voiceprints = relationship("VoicePrint", back_populates="user")
-    faceprints = relationship("FacePrint", back_populates="user")
+    voice_samples      = relationship("VoiceSample", back_populates="user")
+    face_samples       = relationship("FaceSample", back_populates="user")
+    enrollment_status  = relationship("EnrollmentStatus", back_populates="user", uselist=False)
+    voiceprints        = relationship("VoicePrint", back_populates="user")
+    faceprints         = relationship("FacePrint", back_populates="user")
+
 
 class VoiceSample(Base):
     __tablename__ = "voice_samples"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    file_path = Column(String)
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    file_path       = Column(String)
     transcript_path = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at      = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="voice_samples")
 
+
 class FaceSample(Base):
     __tablename__ = "face_samples"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    left_path = Column(String)
-    right_path = Column(String)
-    front_path = Column(String)
-    embeddings_path = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id          = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    left_path        = Column(String)
+    right_path       = Column(String)
+    front_path       = Column(String)
+    embeddings_path  = Column(String)
+    created_at       = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="face_samples")
 
 
 class EnrollmentStatus(Base):
     __tablename__ = "enrollment_statuses"
-
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
     voice_done = Column(Boolean, default=False)
-    face_done = Column(Boolean, default=False)
+    face_done  = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="enrollment_status")
 
 
 class VoicePrint(Base):
     __tablename__ = "voiceprints"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    vector = Column(LargeBinary)
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    vector     = Column(LargeBinary)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="voiceprints")
@@ -75,10 +71,9 @@ class VoicePrint(Base):
 
 class FacePrint(Base):
     __tablename__ = "faceprints"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    vector = Column(LargeBinary)
+    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    vector     = Column(LargeBinary)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="faceprints")
