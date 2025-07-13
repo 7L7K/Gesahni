@@ -5,9 +5,11 @@ from uuid import uuid4
 
 import chromadb
 from chromadb.config import Settings
+
+# Optional heavy dependency for embeddings
 try:
     from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-except Exception:  # pragma: no cover - optional heavy dependency
+except ImportError:
     SentenceTransformerEmbeddingFunction = None
 
 
@@ -16,21 +18,20 @@ class Memory:
 
     def __init__(self, persist_directory: str = "vector_store") -> None:
         Path(persist_directory).mkdir(parents=True, exist_ok=True)
-        use_dummy = False
-        self.client = chromadb.PersistentClient(path=persist_directory)
+
+        # Try to use a real embedding function; otherwise fall back to dummy
+        embedding_fn = None
         if SentenceTransformerEmbeddingFunction is not None:
             try:
                 embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-            except Exception:  # package missing or failed to load
+            except Exception:
                 embedding_fn = None
-                use_dummy = True
-        else:
-            embedding_fn = None
-            use_dummy = True
+
         if embedding_fn is None:
+            # Dummy embedding: fixed-size zero vectors
             class DummyEmbed:
-                def __call__(self, input):  # type: ignore[override]
-                    texts = input if isinstance(input, list) else [input]
+                def __call__(self, inputs):
+                    texts = inputs if isinstance(inputs, list) else [inputs]
                     return [[0.0] * 384 for _ in texts]
 
                 @staticmethod
@@ -38,9 +39,15 @@ class Memory:
                     return "dummy"
 
             embedding_fn = DummyEmbed()
+            # In-memory client if real embeddings aren’t available
             self.client = chromadb.EphemeralClient()
+        else:
+            # Persistent on-disk client if embeddings work
+            self.client = chromadb.PersistentClient(path=persist_directory)
+
         self.collection = self.client.get_or_create_collection(
-            "transcripts", embedding_function=embedding_fn
+            "transcripts",
+            embedding_function=embedding_fn
         )
 
     def add(self, text: str) -> None:
