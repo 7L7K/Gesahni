@@ -1,13 +1,22 @@
 import os
+import uuid
 from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+import requests
 
 from ..database import get_session
 from ..models import User, VoiceSample, FaceSample
 from ..utils.crypto import encrypt_file
-from ..utils.whisper_worker import transcribe_voice
+from ..utils.whisper_worker import (
+    transcribe_voice,
+    speaker_job,
+    face_job,
+)
+from ..utils import tts
+from ..utils.encryption import encrypt_bytes, decrypt_bytes
+from datetime import date
 
 import numpy as np
 import face_recognition
@@ -16,11 +25,24 @@ router = APIRouter()
 
 MEDIA_ROOT = Path('media')
 EMBED_ROOT = Path('embeddings')
+UPLOAD_ROOT = Path('uploads')
+VOICE_ROOT = UPLOAD_ROOT / 'voice'
+FACE_ROOT = UPLOAD_ROOT / 'face'
 
 class Prefs(BaseModel):
     name: str | None = None
     greeting: str | None = None
     reminder_type: str | None = None
+
+
+class VoiceRequest(BaseModel):
+    user_id: str
+    tus_url: str
+
+
+class FaceRequest(BaseModel):
+    user_id: str
+    urls: list[str]
 
 @router.post('/voice/{user_id}')
 async def enroll_voice(
@@ -112,6 +134,106 @@ async def complete_enroll(user_id: str, db: Session = Depends(get_session)):
         raise HTTPException(status_code=409, detail='already active')
     user.is_active = True
     db.commit()
-    # stub call to external TTS service
-    audio_url = f"https://example.com/greet_{user_id}.mp3"
+    today = date.today().isoformat()
+    session_dir = Path('sessions') / f"{today}-{user_id}"
+    session_dir.mkdir(parents=True, exist_ok=True)
+    out_path = session_dir / 'welcome.mp3'
+    greeting = user.name or 'there'
+    try:
+        tts.generate(f"Welcome {greeting}!", out_path.as_posix())
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audio_url = f"/sessions/{today}-{user_id}/welcome.mp3"
     return {"audio_url": audio_url}
+
+
+@router.post('/init')
+async def enroll_init(db: Session = Depends(get_session)):
+    """Create a new user and prepare upload folders."""
+    user_id = str(uuid.uuid4())
+    (VOICE_ROOT / user_id).mkdir(parents=True, exist_ok=True)
+    (FACE_ROOT / user_id).mkdir(parents=True, exist_ok=True)
+    user = User(id=user_id)
+    db.add(user)
+    db.commit()
+    return {"user_id": user_id}
+
+
+@router.post('/voice')
+async def upload_voice(payload: VoiceRequest, db: Session = Depends(get_session)):
+    """Fetch encrypted audio from TUS URL, decrypt, store and enqueue job."""
+    user = db.query(User).filter_by(id=payload.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail='user not found')
+    voice_dir = VOICE_ROOT / payload.user_id
+    voice_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        resp = requests.get(payload.tus_url, timeout=10)
+        resp.raise_for_status()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f'failed to fetch audio: {exc}')
+    enc_path = voice_dir / 'voice.enc'
+    enc_path.write_bytes(resp.content)
+    dec_data = decrypt_bytes(resp.content)
+    wav_path = voice_dir / 'voice.wav'
+    wav_path.write_bytes(dec_data)
+    sample = VoiceSample(user_id=payload.user_id, file_path=str(enc_path))
+    db.add(sample)
+    db.commit()
+    speaker_job.delay(str(wav_path), payload.user_id)
+    return {"message": "queued"}
+
+
+@router.post('/face')
+async def upload_face(payload: FaceRequest, db: Session = Depends(get_session)):
+    """Fetch face images, encrypt them and enqueue processing job."""
+    if len(payload.urls) != 3:
+        raise HTTPException(status_code=400, detail='expected three urls')
+    user = db.query(User).filter_by(id=payload.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail='user not found')
+    face_dir = FACE_ROOT / payload.user_id
+    face_dir.mkdir(parents=True, exist_ok=True)
+    names = ['front', 'left', 'right']
+    enc_paths = []
+    for name, url in zip(names, payload.urls):
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f'failed to fetch {name}: {exc}')
+        enc_data = encrypt_bytes(resp.content)
+        path = face_dir / f'{name}.enc'
+        path.write_bytes(enc_data)
+        enc_paths.append(str(path))
+    sample = FaceSample(user_id=payload.user_id,
+                        front_path=enc_paths[0],
+                        left_path=enc_paths[1],
+                        right_path=enc_paths[2],
+                        embeddings_path='')
+    db.add(sample)
+    db.commit()
+    face_job.delay(enc_paths, payload.user_id)
+    return {"message": "queued"}
+
+
+@router.get('/status/{user_id}')
+async def enroll_status(user_id: str, db: Session = Depends(get_session)):
+    user = db.query(User).filter_by(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail='user not found')
+    voice = db.query(VoiceSample).filter_by(user_id=user_id).first()
+    face = db.query(FaceSample).filter_by(user_id=user_id).first()
+    percent = 0
+    if voice:
+        percent += 50
+    if face:
+        percent += 50
+    status = 'pending'
+    if percent > 0:
+        status = 'processing'
+    if user.is_active:
+        status = 'complete'
+        percent = 100
+    return {"status": status, "percent": percent}
