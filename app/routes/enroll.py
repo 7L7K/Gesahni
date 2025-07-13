@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from ..database import get_session
 from ..models import User, VoiceSample, FaceSample
-from ..utils.crypto import encrypt_file
+from ..utils.encryption import encrypt_file
 from ..utils.whisper_worker import transcribe_voice
 
 import numpy as np

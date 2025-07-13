@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
 from ..models import VoiceSample
-from .crypto import decrypt_file
+from .encryption import decrypt_file
 
 celery_app = Celery(
     'whisper_worker',
@@ -38,4 +38,7 @@ def transcribe_voice(file_path: str, user_id: str) -> None:
         if sample:
             sample.transcript_path = str(txt_path)
             db.commit()
-    temp_path.unlink(missing_ok=True)
+    try:
+        os.remove(temp_path)
+    except FileNotFoundError:
+        pass
