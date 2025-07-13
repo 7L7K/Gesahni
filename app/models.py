@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, Boolean
+from sqlalchemy import Column, DateTime, ForeignKey, String, Boolean, LargeBinary
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -19,6 +19,8 @@ class User(Base):
 
     voice_samples = relationship("VoiceSample", back_populates="user")
     face_samples = relationship("FaceSample", back_populates="user")
+    voiceprints = relationship("VoicePrint", back_populates="user")
+    faceprints = relationship("FacePrint", back_populates="user")
 
 class VoiceSample(Base):
     __tablename__ = "voice_samples"
@@ -41,3 +43,23 @@ class FaceSample(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="face_samples")
+
+
+class VoicePrint(Base):
+    __tablename__ = "voiceprints"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    vector = Column(LargeBinary)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="voiceprints")
+
+
+class FacePrint(Base):
+    __tablename__ = "faceprints"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    vector = Column(LargeBinary)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="faceprints")
