@@ -39,20 +39,23 @@ class FaceRequest(BaseModel):
 
 @router.post('/voice/{user_id}')
 async def enroll_voice(
-    user_id: str, file: UploadFile | None = File(None), db: Session = Depends(get_session)
+    user_id: str, file: UploadFile | None = File(None), db: Session = Depends(get_session),
 ):
-    # Validate UUID string (but keep as str for DB)
+    # Validate that the ID is a valid UUID, but keep it as a string
     try:
         uuid.UUID(user_id)
     except ValueError:
         raise HTTPException(status_code=400, detail='invalid user id')
+
     if file is None:
         raise HTTPException(status_code=400, detail='missing file')
     if file.content_type != 'audio/wav':
         raise HTTPException(status_code=400, detail='invalid file')
-    uid = UUID(user_id)
-    if db.query(VoiceSample).filter_by(user_id=uid).first():
+
+    # Always use string user_id in the DB to match your model definition
+    if db.query(VoiceSample).filter_by(user_id=user_id).first():
         raise HTTPException(status_code=409, detail='already enrolled')
+
     user_dir = MEDIA_ROOT / user_id
     user_dir.mkdir(parents=True, exist_ok=True)
     raw_path = user_dir / 'voice.wav'
@@ -61,7 +64,7 @@ async def enroll_voice(
         fh.write(data)
     enc_path = raw_path.with_suffix('.enc')
     encrypt_file(str(raw_path), str(enc_path))
-    voice_sample = VoiceSample(user_id=uid, file_path=str(enc_path))
+    voice_sample = VoiceSample(user_id=user_id, file_path=str(enc_path))
     db.add(voice_sample)
     db.commit()
     transcribe_voice.delay(str(enc_path), user_id)

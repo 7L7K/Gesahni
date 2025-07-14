@@ -1,10 +1,11 @@
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import importlib
 import os
 import types
-import sys
 import pytest
 import uuid
 import numpy as np
