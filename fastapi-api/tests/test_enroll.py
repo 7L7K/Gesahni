@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from uuid import UUID
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +10,6 @@ import sys
 import types
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-sys.modules["cryptography"] = types.ModuleType("cryptography")
 fer = types.ModuleType("fernet")
 class DummyFernet:
     def __init__(self, *a, **k):
@@ -49,8 +49,12 @@ def client(tmp_path, monkeypatch):
 
     return TestClient(app)
 
+USER_ID = "123e4567-e89b-12d3-a456-426614174000"
+UID = UUID(USER_ID)
+
+
 def test_missing_voice_file_returns_400(client):
-    resp = client.post("/enroll/voice/u1")
+    resp = client.post(f"/enroll/voice/{USER_ID}")
     assert resp.status_code == 400
 
 
@@ -77,14 +81,14 @@ def test_reenroll_same_user(client, tmp_path, monkeypatch):
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            f"/enroll/voice/{USER_ID}",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 200
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            f"/enroll/voice/{USER_ID}",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 409

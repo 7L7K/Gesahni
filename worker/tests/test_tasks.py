@@ -4,8 +4,13 @@ from sqlalchemy.orm import sessionmaker
 import importlib
 import pytest
 
+from uuid import UUID
+
 from app import models, database
 from app.utils import whisper_worker
+
+USER_ID = "123e4567-e89b-12d3-a456-426614174000"
+UID = UUID(USER_ID)
 
 @pytest.fixture()
 def setup_db(tmp_path, monkeypatch):
@@ -34,15 +39,15 @@ def test_transcribe_voice_updates_sample(setup_db, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     with database.SessionLocal() as db:
-        db.add(models.VoiceSample(user_id="u1", file_path=str(voice)))
+        db.add(models.VoiceSample(user_id=UID, file_path=str(voice)))
         db.commit()
 
-    whisper_worker.transcribe_voice(str(voice), "u1")
+    whisper_worker.transcribe_voice(str(voice), USER_ID)
 
-    out = Path("transcripts/u1.txt")
+    out = Path(f"transcripts/{USER_ID}.txt")
     assert out.exists()
     assert out.read_text() == "hi"
     with database.SessionLocal() as db:
-        sample = db.query(models.VoiceSample).filter_by(user_id="u1").first()
+        sample = db.query(models.VoiceSample).filter_by(user_id=UID).first()
         assert sample.transcript_path == str(out)
 
