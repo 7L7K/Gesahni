@@ -8,7 +8,6 @@ import requests
 
 from ..database import get_session
 from ..models import User, VoiceSample, FaceSample
-# ``encrypt_file`` resides in ``encryption``; keep import here for backwards compatibility
 from ..utils.encryption import encrypt_file
 from ..utils.whisper_worker import (
     transcribe_voice,

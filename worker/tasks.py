@@ -7,8 +7,6 @@ import requests
 import numpy as np
 from celery import Celery
 
-# ``decrypt_file`` was previously imported from a non-existent ``crypto`` module.
-# Use the correct utility from ``encryption`` instead.
 from app.utils.encryption import decrypt_file
 from app.database import SessionLocal
 from app.models import VoicePrint, FacePrint
