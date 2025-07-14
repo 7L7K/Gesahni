@@ -1,8 +1,9 @@
 // src/App.tsx
 import { Routes, Route } from 'react-router-dom'
-import { EnrollProvider } from './context/EnrollContext'
 import { AuthProvider } from './context/AuthContext'
+import { EnrollProvider } from './context/EnrollContext'
 import RequireAuth from './context/RequireAuth'
+
 import Landing     from './screens/Landing'
 import Register    from './screens/Register'
 import Login       from './screens/Login'
@@ -17,9 +18,12 @@ export default function App() {
     <AuthProvider>
       <EnrollProvider>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Landing />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+
+          {/* Protected app routes */}
           <Route path="/app/voice-ai" element={<RequireAuth><VoiceAI /></RequireAuth>} />
           <Route path="/app/enroll/voice" element={<RequireAuth><VoiceEnroll /></RequireAuth>} />
           <Route path="/app/enroll/face" element={<RequireAuth><FaceCapture /></RequireAuth>} />
