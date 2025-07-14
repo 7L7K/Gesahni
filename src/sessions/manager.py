@@ -68,4 +68,7 @@ class SessionManager:
                 json.dump(data, fh)
         except Exception as exc:
             logger.exception("Failed to write status file %s: %s", path, exc)
+            raise
+
+        return None
 

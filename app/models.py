@@ -2,7 +2,6 @@ from datetime import datetime
 import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, String, Boolean, LargeBinary
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.types import TypeDecorator, CHAR
 
@@ -27,7 +26,7 @@ class Base(DeclarativeBase):
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=True)
     greeting = Column(String, nullable=True)
     reminder_type = Column(String, nullable=True)
@@ -42,8 +41,8 @@ class User(Base):
 
 class VoiceSample(Base):
     __tablename__ = "voice_samples"
-    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id              = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id         = Column(String, ForeignKey("users.id"))
     file_path       = Column(String)
     transcript_path = Column(String, nullable=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
@@ -52,8 +51,8 @@ class VoiceSample(Base):
 
 class FaceSample(Base):
     __tablename__ = "face_samples"
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id          = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id               = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id          = Column(String, ForeignKey("users.id"))
     left_path        = Column(String)
     right_path       = Column(String)
     front_path       = Column(String)
@@ -64,13 +63,13 @@ class FaceSample(Base):
 
 class ConsentLog(Base):
     __tablename__ = "consent_log"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_agent = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 class EnrollmentStatus(Base):
     __tablename__ = "enrollment_statuses"
-    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True)
+    user_id    = Column(String, ForeignKey("users.id"), primary_key=True)
     voice_done = Column(Boolean, default=False)
     face_done  = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -80,8 +79,8 @@ class EnrollmentStatus(Base):
 
 class VoicePrint(Base):
     __tablename__ = "voiceprints"
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id         = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id    = Column(String, ForeignKey("users.id"))
     vector     = Column(LargeBinary)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -89,8 +88,8 @@ class VoicePrint(Base):
 
 class FacePrint(Base):
     __tablename__ = "faceprints"
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id         = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id    = Column(String, ForeignKey("users.id"))
     vector     = Column(LargeBinary)
     created_at = Column(DateTime, default=datetime.utcnow)
 

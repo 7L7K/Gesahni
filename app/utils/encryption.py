@@ -8,21 +8,21 @@ try:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     from cryptography.fernet import Fernet
     _crypto_available = True
-except Exception:              # pragma: no cover – cryptography not installed
+except Exception:                  # pragma: no cover – cryptography not installed
     AESGCM = None
     Fernet = None
     _crypto_available = False
 
 # ------------------------------------------------------------
-# AES-256-GCM FILE encryption helpers
+# AES-256-GCM · FILE encryption helpers
 # ------------------------------------------------------------
 _AES_KEY_ENV = "AES_KEY"
 
 
 def _load_aes_key() -> bytes:
     """
-    Load a 32-byte AES key from the env var AES_KEY (URL-safe-base64);
-    otherwise generate a random one (dev / fallback use).
+    Load a 32-byte AES key from the AES_KEY env-var (URL-safe base64);
+    otherwise generate a fresh key (dev / fallback use).
     """
     key_b64 = os.getenv(_AES_KEY_ENV)
     if key_b64:
@@ -33,7 +33,7 @@ def _load_aes_key() -> bytes:
         except Exception:
             pass
 
-    # Generate a fresh key
+    # Generate a new key
     if _crypto_available:
         return AESGCM.generate_key(bit_length=256)
     return os.urandom(32)
@@ -45,15 +45,11 @@ AES_KEY: bytes = _load_aes_key()
 def encrypt_file(in_path: str, out_path: str) -> None:
     """
     Encrypt *in_path* → *out_path* with AES-256-GCM.
-
-    If the cryptography backend is unavailable, it simply copies the file
-    so the function is still usable in constrained environments.
+    If cryptography isn’t available, falls back to a simple file copy.
     """
     if not _crypto_available:
-        # To fail hard instead, replace the next two lines with:
-        # raise RuntimeError("cryptography library not available")
-        with open(in_path, "rb") as src, open(out_path, "wb") as dest:
-            dest.write(src.read())
+        with open(in_path, "rb") as src, open(out_path, "wb") as dst:
+            dst.write(src.read())
         return
 
     aesgcm = AESGCM(AES_KEY)
@@ -61,7 +57,7 @@ def encrypt_file(in_path: str, out_path: str) -> None:
     with open(in_path, "rb") as fh:
         data = fh.read()
 
-    nonce = os.urandom(12)              # 96-bit nonce recommended for GCM
+    nonce = os.urandom(12)              # 96-bit nonce for GCM
     ciphertext = aesgcm.encrypt(nonce, data, None)
 
     with open(out_path, "wb") as fh:
@@ -71,14 +67,11 @@ def encrypt_file(in_path: str, out_path: str) -> None:
 def decrypt_file(in_path: str, out_path: str) -> None:
     """
     Decrypt *in_path* → *out_path* with AES-256-GCM.
-
-    Copies the file unchanged if the cryptography backend is unavailable.
+    Falls back to a raw copy when cryptography isn’t available.
     """
     if not _crypto_available:
-        # To fail hard instead, replace the next two lines with:
-        # raise RuntimeError("cryptography library not available")
-        with open(in_path, "rb") as src, open(out_path, "wb") as dest:
-            dest.write(src.read())
+        with open(in_path, "rb") as src, open(out_path, "wb") as dst:
+            dst.write(src.read())
         return
 
     aesgcm = AESGCM(AES_KEY)
@@ -93,7 +86,7 @@ def decrypt_file(in_path: str, out_path: str) -> None:
         fh.write(plaintext)
 
 # ------------------------------------------------------------
-# Fernet BYTES encryption helpers (snippets, DB fields, etc.)
+# Fernet · BYTES encryption helpers (snippets, DB fields, etc.)
 # ------------------------------------------------------------
 _FERNET_KEY_ENV = "FERNET_KEY"
 fernet_key = os.getenv(_FERNET_KEY_ENV) or (
@@ -101,28 +94,28 @@ fernet_key = os.getenv(_FERNET_KEY_ENV) or (
 )
 
 if _crypto_available:
-    fernet = Fernet(fernet_key)
+    fernet = Fernet(fernet_key)  # type: ignore[arg-type]
 else:
     class _DummyFernet:
-        """No-op drop-in when cryptography is missing."""
-        def encrypt(self, data: bytes) -> bytes:
+        """No-op replacement when cryptography is missing."""
+        def encrypt(self, data: bytes) -> bytes:  # pylint: disable=no-self-use
             return data
-        def decrypt(self, data: bytes) -> bytes:
+        def decrypt(self, data: bytes) -> bytes:  # pylint: disable=no-self-use
             return data
     fernet = _DummyFernet()
 
 
 def encrypt_bytes(data: bytes) -> bytes:
-    """Encrypt raw bytes with Fernet when available, otherwise return unchanged."""
-    return fernet.encrypt(data)
+    """Encrypt raw bytes when Fernet is available; otherwise return unchanged."""
+    return fernet.encrypt(data)  # type: ignore[attr-defined]
 
 
 def decrypt_bytes(data: bytes) -> bytes:
-    """Decrypt raw bytes with Fernet when available, otherwise return unchanged."""
-    return fernet.decrypt(data)
+    """Decrypt raw bytes when Fernet is available; otherwise return unchanged."""
+    return fernet.decrypt(data)  # type: ignore[attr-defined]
 
 # ------------------------------------------------------------
 # TODO:
-#   • Write a key-rotation utility that walks existing files,
-#     decrypts with the old key, and re-encrypts with a new key.
+#   • Build a key-rotation utility to walk existing assets,
+#     decrypt them with the old key, and re-encrypt with the new one.
 # ------------------------------------------------------------
