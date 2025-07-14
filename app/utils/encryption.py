@@ -11,30 +11,21 @@ try:
     _crypto_available = True
 except Exception:  # pragma: no cover – cryptography not installed
     class AESGCM:  # type: ignore
-        def __init__(self, *args, **kwargs):
-            pass
-
+        def __init__(self, *args, **kwargs): pass
         @staticmethod
         def generate_key(bit_length: int = 256) -> bytes:
             return b"0" * (bit_length // 8)
-
         def encrypt(self, nonce: bytes, data: bytes, assoc=None) -> bytes:
             return data
-
         def decrypt(self, nonce: bytes, data: bytes, assoc=None) -> bytes:
             return data
-
     class Fernet:  # type: ignore
-        def __init__(self, *args, **kwargs):
-            pass
-
+        def __init__(self, *args, **kwargs): pass
         @staticmethod
         def generate_key() -> bytes:
             return b"0" * 32
-
         def encrypt(self, data: bytes) -> bytes:
             return data
-
         def decrypt(self, data: bytes) -> bytes:
             return data
     _crypto_available = False
@@ -57,7 +48,6 @@ def _load_aes_key() -> bytes:
                 return key
         except Exception:
             pass
-
     # Generate a new key
     return AESGCM.generate_key(bit_length=256)
 
