@@ -7,7 +7,9 @@ import requests
 import numpy as np
 from celery import Celery
 
-from app.utils.crypto import decrypt_file
+# ``decrypt_file`` was previously imported from a non-existent ``crypto`` module.
+# Use the correct utility from ``encryption`` instead.
+from app.utils.encryption import decrypt_file
 from app.database import SessionLocal
 from app.models import VoicePrint, FacePrint
 
@@ -33,8 +35,8 @@ def _post_callback(path: str, payload: dict) -> None:
         pass
 
 
-@celery_app.task
-def speaker_job(user_id: str, tus_url: str) -> None:
+@celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def speaker_job(self, user_id: str, tus_url: str) -> None:
     """Enroll a speaker from a remote encrypted WAV file."""
     tmp_enc = Path("/tmp") / f"{uuid.uuid4()}.wav.enc"
     tmp_wav = tmp_enc.with_suffix(".wav")
@@ -57,8 +59,8 @@ def speaker_job(user_id: str, tus_url: str) -> None:
     _post_callback("/internal/voice_done", {"user_id": user_id})
 
 
-@celery_app.task
-def face_job(user_id: str, tus_urls: List[str]) -> None:
+@celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_kwargs={"max_retries": 3})
+def face_job(self, user_id: str, tus_urls: List[str]) -> None:
     """Enroll a face from multiple encrypted images."""
     vectors = []
     for url in tus_urls:
