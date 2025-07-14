@@ -1,25 +1,20 @@
-import os
 import uuid
 from pathlib import Path
+from datetime import date
+
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from uuid import UUID
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import requests
+import numpy as np
+import face_recognition
 
 from ..database import get_session
 from ..models import User, VoiceSample, FaceSample
-from ..utils.crypto import encrypt_file
-from ..utils.whisper_worker import (
-    transcribe_voice,
-    speaker_job,
-    face_job,
-)
+from ..utils.encryption import encrypt_file, encrypt_bytes, decrypt_bytes
+from ..utils.whisper_worker import transcribe_voice, speaker_job, face_job
 from ..utils import tts
-from ..utils.encryption import encrypt_bytes, decrypt_bytes
-from datetime import date
-
-import numpy as np
-import face_recognition
 
 router = APIRouter()
 
@@ -34,11 +29,9 @@ class Prefs(BaseModel):
     greeting: str | None = None
     reminder_type: str | None = None
 
-
 class VoiceRequest(BaseModel):
     user_id: str
     tus_url: str
-
 
 class FaceRequest(BaseModel):
     user_id: str
@@ -48,13 +41,21 @@ class FaceRequest(BaseModel):
 async def enroll_voice(
     user_id: str, file: UploadFile | None = File(None), db: Session = Depends(get_session),
 ):
-    uid = uuid.UUID(user_id)
+    # Validate that the ID is a valid UUID, but keep it as a string
+    try:
+        uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail='invalid user id')
+
     if file is None:
         raise HTTPException(status_code=400, detail='missing file')
     if file.content_type != 'audio/wav':
         raise HTTPException(status_code=400, detail='invalid file')
-    if db.query(VoiceSample).filter_by(user_id=uid).first():
+
+    # Always use string user_id in the DB to match your model definition
+    if db.query(VoiceSample).filter_by(user_id=user_id).first():
         raise HTTPException(status_code=409, detail='already enrolled')
+
     user_dir = MEDIA_ROOT / user_id
     user_dir.mkdir(parents=True, exist_ok=True)
     raw_path = user_dir / 'voice.wav'
@@ -63,10 +64,10 @@ async def enroll_voice(
         fh.write(data)
     enc_path = raw_path.with_suffix('.enc')
     encrypt_file(str(raw_path), str(enc_path))
-    voice_sample = VoiceSample(user_id=uid, file_path=str(enc_path))
+    voice_sample = VoiceSample(user_id=user_id, file_path=str(enc_path))
     db.add(voice_sample)
     db.commit()
-    transcribe_voice.delay(str(enc_path), str(uid))
+    transcribe_voice.delay(str(enc_path), user_id)
     return {"message": "queued"}
 
 @router.post('/face/{user_id}')
@@ -77,6 +78,10 @@ async def enroll_face(
     right: UploadFile | None = File(None),
     db: Session = Depends(get_session),
 ):
+    try:
+        uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail='invalid user id')
     if not front or not left or not right:
         raise HTTPException(status_code=400, detail='missing images')
     user_dir = MEDIA_ROOT / user_id
@@ -94,15 +99,13 @@ async def enroll_face(
         enc = raw.with_suffix('.enc')
         encrypt_file(str(raw), str(enc))
         paths[name] = str(enc)
-
-    # embeddings
+    # Embeddings
     img = face_recognition.load_image_file(str(user_dir / 'front.jpg'))
     encodings = face_recognition.face_encodings(img)
     emb = encodings[0] if encodings else np.zeros(128)
     EMBED_ROOT.mkdir(parents=True, exist_ok=True)
     emb_path = EMBED_ROOT / f"{user_id}.npy"
     np.save(emb_path, emb)
-
     sample = FaceSample(
         user_id=user_id,
         front_path=paths['front'],
@@ -144,10 +147,8 @@ async def complete_enroll(user_id: str, db: Session = Depends(get_session)):
         tts.generate(f"Welcome {greeting}!", out_path.as_posix())
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
-
     audio_url = f"/sessions/{today}-{user_id}/welcome.mp3"
     return {"audio_url": audio_url}
-
 
 @router.post('/init')
 async def enroll_init(db: Session = Depends(get_session)):
@@ -159,7 +160,6 @@ async def enroll_init(db: Session = Depends(get_session)):
     db.add(user)
     db.commit()
     return {"user_id": user_id}
-
 
 @router.post('/voice')
 async def upload_voice(payload: VoiceRequest, db: Session = Depends(get_session)):
@@ -184,7 +184,6 @@ async def upload_voice(payload: VoiceRequest, db: Session = Depends(get_session)
     db.commit()
     speaker_job.delay(str(wav_path), payload.user_id)
     return {"message": "queued"}
-
 
 @router.post('/face')
 async def upload_face(payload: FaceRequest, db: Session = Depends(get_session)):
@@ -217,7 +216,6 @@ async def upload_face(payload: FaceRequest, db: Session = Depends(get_session)):
     db.commit()
     face_job.delay(enc_paths, payload.user_id)
     return {"message": "queued"}
-
 
 @router.get('/status/{user_id}')
 async def enroll_status(user_id: str, db: Session = Depends(get_session)):
