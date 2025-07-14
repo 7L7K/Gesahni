@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from .routes import enroll, consent
 
@@ -19,6 +20,8 @@ app.add_middleware(
 
 Instrumentator().instrument(app).expose(app)
 
+# Ensure session directory exists
+Path("sessions").mkdir(parents=True, exist_ok=True)
 app.mount("/sessions", StaticFiles(directory="sessions"), name="sessions")
 
 @app.get("/health")

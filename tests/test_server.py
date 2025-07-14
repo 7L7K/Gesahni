@@ -52,3 +52,28 @@ def test_chat_route(client, monkeypatch):
     assert resp.status_code == 200
     assert resp.get_json() == {"response": "hi there"}
 
+
+def test_search_route(client, monkeypatch):
+    monkeypatch.setattr(server.memory, "search", lambda q: ["one", "two"])
+    resp = client.get("/search?q=hello")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"results": ["one", "two"]}
+
+
+def test_handle_chunk_ws(tmp_path, monkeypatch):
+    server.SESSION_DIR = tmp_path
+
+    def fake_run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
+        Path(cmd[-1]).write_bytes(b"audio")
+        return subprocess.CompletedProcess(cmd, 0, b"", b"")
+
+    monkeypatch.setattr(server.subprocess, "run", fake_run)
+    monkeypatch.setattr(server.transcriber, "transcribe", lambda p: "chunk")
+    monkeypatch.setattr(server.memory, "add", lambda t: None)
+    monkeypatch.setattr(server.session_manager, "create_today_session", lambda: str(tmp_path))
+
+    client = server.socketio.test_client(server.app)
+    client.emit("chunk", b"data")
+    received = client.get_received()
+    assert any(r["name"] == "transcription" and r["args"][0] == {"text": "chunk"} for r in received)
+
