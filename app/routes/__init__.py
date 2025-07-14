@@ -1,3 +1,3 @@
-from . import enroll, consent
+from . import enroll, consent, auth, users
 
-__all__ = ["enroll", "consent"]
+__all__ = ["enroll", "consent", "auth", "users"]
