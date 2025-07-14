@@ -49,8 +49,12 @@ def client(tmp_path, monkeypatch):
 
     return TestClient(app)
 
+import uuid
+
+
 def test_missing_voice_file_returns_400(client):
-    resp = client.post("/enroll/voice/u1")
+    uid = uuid.uuid4()
+    resp = client.post(f"/enroll/voice/{uid}")
     assert resp.status_code == 400
 
 
@@ -61,6 +65,7 @@ def test_health_endpoint(client):
 
 
 def test_reenroll_same_user(client, tmp_path, monkeypatch):
+    uid = uuid.uuid4()
     voice = tmp_path / "v.wav"
     voice.write_bytes(b"data")
 
@@ -77,14 +82,14 @@ def test_reenroll_same_user(client, tmp_path, monkeypatch):
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            f"/enroll/voice/{uid}",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 200
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            f"/enroll/voice/{uid}",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 409
