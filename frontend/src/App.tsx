@@ -6,6 +6,7 @@ import VoiceEnroll  from './screens/VoiceEnroll'
 import FaceCapture  from './screens/FaceCapture'
 import PrefSetup    from './screens/PrefSetup'
 import Finish       from './screens/Finish'
+import VoiceAI      from './screens/VoiceAI'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/face"  element={<FaceCapture />} />
         <Route path="/prefs" element={<PrefSetup />} />
         <Route path="/finish" element={<Finish />} />
+        <Route path="/voice-ai" element={<VoiceAI />} />
       </Routes>
     </EnrollProvider>
   )
