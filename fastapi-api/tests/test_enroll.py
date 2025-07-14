@@ -9,7 +9,6 @@ import sys
 import types
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-sys.modules["cryptography"] = types.ModuleType("cryptography")
 fer = types.ModuleType("fernet")
 class DummyFernet:
     def __init__(self, *a, **k):
@@ -36,6 +35,9 @@ class DummyCelery:
 cel.Celery = DummyCelery
 sys.modules["celery"] = cel
 sys.modules["whisper"] = types.ModuleType("whisper")
+crypto_mod = types.ModuleType("crypto")
+crypto_mod.encrypt_file = lambda src, dest: Path(dest).write_bytes(Path(src).read_bytes())
+sys.modules["app.utils.crypto"] = crypto_mod
 from app import models, database
 from app.main import app
 
@@ -50,7 +52,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 def test_missing_voice_file_returns_400(client):
-    resp = client.post("/enroll/voice/u1")
+    resp = client.post("/enroll/voice/00000000-0000-0000-0000-000000000001")
     assert resp.status_code == 400
 
 
@@ -75,16 +77,17 @@ def test_reenroll_same_user(client, tmp_path, monkeypatch):
     monkeypatch.setattr(enroll, "encrypt_file", fake_encrypt)
     monkeypatch.setattr(enroll, "transcribe_voice", DummyTask())
 
+    user = "123e4567-e89b-12d3-a456-426655440000"
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            f"/enroll/voice/{user}",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 200
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            f"/enroll/voice/{user}",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 409
