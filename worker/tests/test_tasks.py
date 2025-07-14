@@ -17,14 +17,12 @@ sys.modules.setdefault("whisper", types.ModuleType("whisper"))
 cel = types.ModuleType("celery")
 class DummyCelery:
     def __init__(self, *a, **k): pass
-    def task(self, *a, **k):
-        bind = k.get("bind", False)
-        def deco(fn):
-            if bind:
-                def wrapper(*args, **kw): return fn(None, *args, **kw)
-                return wrapper
-            return fn
-        return deco
+    def task(self, *args, **kwargs):
+        def decorator(fn): return fn
+        if args and callable(args[0]):
+            return args[0]
+        return decorator
+
 cel.Celery = DummyCelery
 sys.modules.setdefault("celery", cel)
 
@@ -43,7 +41,6 @@ def setup_db(tmp_path, monkeypatch):
     return engine
 
 def test_transcribe_voice_updates_sample(setup_db, tmp_path, monkeypatch):
-    engine = setup_db
     voice = tmp_path / "sample.enc"
     voice.write_bytes(b"data")
 
@@ -109,7 +106,7 @@ def test_speaker_job_vectorization(tmp_path, monkeypatch):
     monkeypatch.setattr(tasks, "_post_callback", lambda *a, **k: None)
 
     uid = str(uuid.uuid4())
-    tasks.speaker_job(uid, "http://fake")
+    tasks.speaker_job("http://fake", uid)
 
     with SessionLocal() as db:
         vp = db.query(models.VoicePrint).filter_by(user_id=uid).first()
@@ -118,7 +115,10 @@ def test_speaker_job_vectorization(tmp_path, monkeypatch):
 def test_face_job_vectorization(tmp_path, monkeypatch):
     SessionLocal = _setup_worker_db(tmp_path, monkeypatch)
 
-    vectors = [np.array([1.0, 2.0], dtype=np.float32), np.array([3.0, 4.0], dtype=np.float32)]
+    vectors = [
+        np.array([1.0, 2.0], dtype=np.float32),
+        np.array([3.0, 4.0], dtype=np.float32),
+    ]
     get_calls = []
 
     def fake_get(url, timeout=30):
@@ -144,7 +144,7 @@ def test_face_job_vectorization(tmp_path, monkeypatch):
     monkeypatch.setattr(tasks, "Eagle", None)
 
     uid = str(uuid.uuid4())
-    tasks.face_job(uid, ["url1", "url2"])
+    tasks.face_job(["url1", "url2"], uid)
 
     avg = np.mean(vectors, axis=0)
     with SessionLocal() as db:

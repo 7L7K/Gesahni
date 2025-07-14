@@ -40,3 +40,5 @@ Archive.zip
 node_modules/
 *.bin
 .env
+*.wav
+*.enc

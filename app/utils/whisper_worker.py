@@ -35,11 +35,11 @@ def transcribe_voice(file_path: str, user_id: str) -> None:
     txt_path.write_text(transcript, encoding='utf-8')
 
     with SessionLocal() as db:
-        uid = UUID(user_id)
-        sample = db.query(VoiceSample).filter_by(user_id=uid).first()
-        if sample:
-            sample.transcript_path = str(txt_path)
-            db.commit()
+       uid = UUID(user_id)
+       sample = db.query(VoiceSample).filter_by(user_id=uid).first()
+       if sample:
+           sample.transcript_path = str(txt_path)
+           db.commit()
     try:
         os.remove(temp_path)
     except FileNotFoundError:

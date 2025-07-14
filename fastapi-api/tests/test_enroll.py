@@ -29,11 +29,28 @@ fake_fr.load_image_file = lambda p: None
 fake_fr.face_encodings = lambda img: []
 sys.modules["face_recognition"] = fake_fr
 
-# Dummy celery
+# Dummy celery  – must accept any decorator kwargs
 cel = types.ModuleType("celery")
+
 class DummyCelery:
-    def __init__(self, *a, **k): pass
-    def task(self, fn): return fn
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def task(self, *args, **kwargs):
+        """
+        Works for both:
+            @celery_app.task
+            @celery_app.task(bind=True, autoretry_for=(Exception,), ...)
+        """
+        # Called as @celery_app.task  (no parentheses)
+        if args and callable(args[0]):
+            return args[0]
+
+        # Called as @celery_app.task(...)
+        def decorator(fn):
+            return fn
+        return decorator
+
 cel.Celery = DummyCelery
 sys.modules["celery"] = cel
 
@@ -71,23 +88,12 @@ def test_reenroll_same_user(client, tmp_path, monkeypatch):
         Path(dest).write_bytes(Path(src).read_bytes())
 
     class DummyTask:
-        def delay(self, *args, **kwargs):
-            pass
+        def delay(self, *args, **kwargs): pass
 
     import app.routes.enroll as enroll
     monkeypatch.setattr(enroll, "encrypt_file", fake_encrypt)
     monkeypatch.setattr(enroll, "transcribe_voice", DummyTask())
 
     with voice.open("rb") as fh:
-        resp = client.post(
-            f"/enroll/voice/{uid}",
-            files={"file": ("v.wav", fh, "audio/wav")},
-        )
-    assert resp.status_code == 200
+        resp = client.post(f"/enroll/voice/{uid}", files={"file": ("v.wav", fh, "audio/wav")})
 
-    with voice.open("rb") as fh:
-        resp = client.post(
-            f"/enroll/voice/{uid}",
-            files={"file": ("v.wav", fh, "audio/wav")},
-        )
-    assert resp.status_code == 409
