@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import importlib
 import pytest
+import uuid
 
 from app import models, database
 from app.utils import whisper_worker
@@ -33,16 +34,19 @@ def test_transcribe_voice_updates_sample(setup_db, tmp_path, monkeypatch):
     monkeypatch.setattr(whisper_worker, "get_model", lambda: DummyModel())
     monkeypatch.chdir(tmp_path)
 
+    uid = uuid.UUID("11111111-1111-1111-1111-111111111111")
     with database.SessionLocal() as db:
-        db.add(models.VoiceSample(user_id="u1", file_path=str(voice)))
+        db.add(
+            models.VoiceSample(user_id=uid, file_path=str(voice))
+        )
         db.commit()
 
-    whisper_worker.transcribe_voice(str(voice), "u1")
+    whisper_worker.transcribe_voice(str(voice), str(uid))
 
-    out = Path("transcripts/u1.txt")
+    out = Path(f"transcripts/{uid}.txt")
     assert out.exists()
     assert out.read_text() == "hi"
     with database.SessionLocal() as db:
-        sample = db.query(models.VoiceSample).filter_by(user_id="u1").first()
+        sample = db.query(models.VoiceSample).filter_by(user_id=uid).first()
         assert sample.transcript_path == str(out)
 

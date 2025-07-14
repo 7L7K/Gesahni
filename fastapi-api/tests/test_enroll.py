@@ -9,7 +9,6 @@ import sys
 import types
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-sys.modules["cryptography"] = types.ModuleType("cryptography")
 fer = types.ModuleType("fernet")
 class DummyFernet:
     def __init__(self, *a, **k):
@@ -50,7 +49,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 def test_missing_voice_file_returns_400(client):
-    resp = client.post("/enroll/voice/u1")
+    resp = client.post("/enroll/voice/11111111-1111-1111-1111-111111111111")
     assert resp.status_code == 400
 
 
@@ -77,14 +76,14 @@ def test_reenroll_same_user(client, tmp_path, monkeypatch):
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            "/enroll/voice/11111111-1111-1111-1111-111111111111",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 200
 
     with voice.open("rb") as fh:
         resp = client.post(
-            "/enroll/voice/u1",
+            "/enroll/voice/11111111-1111-1111-1111-111111111111",
             files={"file": ("v.wav", fh, "audio/wav")},
         )
     assert resp.status_code == 409
