@@ -3,6 +3,23 @@ import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, String, Boolean, LargeBinary
 from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.types import TypeDecorator, CHAR
+
+
+class GUID(TypeDecorator):
+    """Platform-independent GUID/UUID type accepting strings."""
+    impl = CHAR(36)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
 
 class Base(DeclarativeBase):
     pass
