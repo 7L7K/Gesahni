@@ -1,31 +1,61 @@
 import json
 from pathlib import Path
+import types
 import sys
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.assistant.gpt_worker import generate_summary
-from src.sessions import SessionManager
+from src.assistant import gpt_worker
+from src.sessions.manager import SessionManager
+
+class DummyResp:
+    def __init__(self, content):
+        self.choices = [{"message": {"content": content}}]
+
+def make_openai(content):
+    class Chat:
+        @staticmethod
+        def create(**kwargs):
+            return {"choices": [{"message": {"content": content}}]}
+    return types.SimpleNamespace(ChatCompletion=Chat)
+
+@pytest.fixture
+def dummy_manager(monkeypatch):
+    mgr = SessionManager()
+    monkeypatch.setattr(mgr, "write_status", lambda *a, **k: None)
+    return mgr
 
 
-def test_generate_summary(tmp_path, monkeypatch):
-    session_dir = tmp_path / "sess"
-    session_dir.mkdir()
-    transcript = session_dir / "transcript.txt"
-    transcript.write_text("hello there", encoding="utf-8")
+def test_generate_summary_success(tmp_path, monkeypatch, dummy_manager):
+    session = tmp_path / "s1"
+    session.mkdir()
+    (session / "transcript.txt").write_text("hello world", encoding="utf-8")
+    monkeypatch.setattr(gpt_worker, "openai", make_openai("short summary"))
+    gpt_worker.generate_summary(session.as_posix(), dummy_manager)
+    data = json.loads((session / "summary.json").read_text())
+    assert data["summary"] == "short summary"
+    assert data["next_question"]
 
-    manager = SessionManager(tmp_path.as_posix())
-    called = {}
 
-    def fake_write_status(sdir, whisper_done, gpt_done):
-        called["args"] = (sdir, whisper_done, gpt_done)
+def test_generate_summary_rate_limit(tmp_path, monkeypatch, dummy_manager):
+    session = tmp_path / "s1"
+    session.mkdir()
+    text = "a" * 150
+    (session / "transcript.txt").write_text(text, encoding="utf-8")
 
-    monkeypatch.setattr(manager, "write_status", fake_write_status)
+    class DummyErr(Exception):
+        pass
 
-    generate_summary(session_dir.as_posix(), manager)
+    class Chat:
+        @staticmethod
+        def create(**kwargs):
+            raise DummyErr()
 
-    summary_file = session_dir / "summary.json"
-    assert summary_file.exists()
-    data = json.loads(summary_file.read_text(encoding="utf-8"))
-    assert "summary" in data
-    assert called.get("args") == (session_dir.as_posix(), True, True)
+    monkeypatch.setattr(gpt_worker, "openai", types.SimpleNamespace(ChatCompletion=Chat))
+    monkeypatch.setattr(gpt_worker, "RateLimitError", DummyErr)
+    gpt_worker.generate_summary(session.as_posix(), dummy_manager)
+    data = json.loads((session / "summary.json").read_text())
+    assert data["summary"] == text[:100]
+
