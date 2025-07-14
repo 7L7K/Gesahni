@@ -7,7 +7,7 @@ import requests
 import numpy as np
 from celery import Celery
 
-from app.utils.crypto import decrypt_file
+from app.utils.encryption import decrypt_file
 from app.database import SessionLocal
 from app.models import VoicePrint, FacePrint
 

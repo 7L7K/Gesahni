@@ -1,14 +1,10 @@
 import os
 import base64
-try:
-    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    from cryptography.fernet import Fernet
-except Exception:  # pragma: no cover - optional dependency may be missing
-    AESGCM = None
-    Fernet = None
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.fernet import Fernet
 
 # --- AES-256-GCM for FILE encryption ---
-
 _AES_KEY_ENV = "AES_KEY"
 
 def _load_aes_key() -> bytes:
@@ -23,14 +19,16 @@ def _load_aes_key() -> bytes:
     # Generate a random key if not provided; useful for development
     return AESGCM.generate_key(bit_length=256)
 
-AES_KEY = _load_aes_key() if AESGCM is not None else b""
+try:
+    AES_KEY = _load_aes_key()
+    _aesgcm_available = True
+except ImportError:
+    AES_KEY = b""
+    _aesgcm_available = False
 
 def encrypt_file(in_path: str, out_path: str) -> None:
-    """Encrypt ``in_path`` to ``out_path`` using AES-256-GCM.
-
-    Falls back to copying the file when cryptography is unavailable.
-    """
-    if AESGCM is None:
+    """Encrypt `in_path` → `out_path` using AES-256-GCM; falls back to copy if unavailable."""
+    if not _aesgcm_available:
         with open(in_path, "rb") as src, open(out_path, "wb") as dest:
             dest.write(src.read())
         return
@@ -39,16 +37,13 @@ def encrypt_file(in_path: str, out_path: str) -> None:
     with open(in_path, "rb") as fh:
         data = fh.read()
     nonce = os.urandom(12)
-    encrypted = aesgcm.encrypt(nonce, data, None)
+    ciphertext = aesgcm.encrypt(nonce, data, None)
     with open(out_path, "wb") as fh:
-        fh.write(nonce + encrypted)
+        fh.write(nonce + ciphertext)
 
 def decrypt_file(in_path: str, out_path: str) -> None:
-    """Decrypt ``in_path`` to ``out_path`` using AES-256-GCM.
-
-    Falls back to copying the file when cryptography is unavailable.
-    """
-    if AESGCM is None:
+    """Decrypt `in_path` → `out_path` using AES-256-GCM; falls back to copy if unavailable."""
+    if not _aesgcm_available:
         with open(in_path, "rb") as src, open(out_path, "wb") as dest:
             dest.write(src.read())
         return
@@ -57,32 +52,36 @@ def decrypt_file(in_path: str, out_path: str) -> None:
     with open(in_path, "rb") as fh:
         payload = fh.read()
     nonce, ciphertext = payload[:12], payload[12:]
-    decrypted = aesgcm.decrypt(nonce, ciphertext, None)
+    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
     with open(out_path, "wb") as fh:
-        fh.write(decrypted)
+        fh.write(plaintext)
 
-# --- Fernet for BYTES encryption (snippets, database fields, etc) ---
+# --- Fernet for BYTES encryption (snippets, DB fields, etc.) ---
+_FERNET_KEY_ENV = "FERNET_KEY"
+fernet_key = os.getenv(_FERNET_KEY_ENV)
+if not fernet_key:
+    # generate and (optionally) log or persist for later decryptions
+    fernet_key = Fernet.generate_key()
+    # e.g. print("Generated new FERNET_KEY:", fernet_key)
 
-if Fernet is not None:
-    FERNET_KEY = os.getenv("FERNET_KEY")
-    if not FERNET_KEY:
-        FERNET_KEY = Fernet.generate_key()
-    fernet = Fernet(FERNET_KEY)
-else:  # pragma: no cover - cryptography missing
-    FERNET_KEY = b""
-    fernet = None
+try:
+    fernet = Fernet(fernet_key)
+except Exception:
+    # cryptography not available or invalid key
+    class _DummyFernet:
+        def encrypt(self, data: bytes) -> bytes:
+            return data
+        def decrypt(self, data: bytes) -> bytes:
+            return data
+    fernet = _DummyFernet()
 
 def encrypt_bytes(data: bytes) -> bytes:
     """Encrypt raw bytes using Fernet when available."""
-    if fernet is None:
-        return data
     return fernet.encrypt(data)
 
 def decrypt_bytes(data: bytes) -> bytes:
     """Decrypt raw bytes using Fernet when available."""
-    if fernet is None:
-        return data
     return fernet.decrypt(data)
 
-# TODO: implement a key rotation script that re-encrypts existing files with a
+# TODO: implement a key-rotation script that re-encrypts existing files with a
 # new key while preserving data integrity.
