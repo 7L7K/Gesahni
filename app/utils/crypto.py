@@ -6,8 +6,8 @@ from .encryption import (
 )
 
 __all__ = [
-    'encrypt_file',
-    'decrypt_file',
-    'encrypt_bytes',
-    'decrypt_bytes',
+    "encrypt_file",
+    "decrypt_file",
+    "encrypt_bytes",
+    "decrypt_bytes",
 ]

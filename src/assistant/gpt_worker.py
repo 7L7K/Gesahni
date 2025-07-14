@@ -8,8 +8,16 @@ results to ``summary.json`` and updates ``status.json`` via ``SessionManager``.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import logging
+from pathlib import Path
+
+try:  # Optional dependency
+    import openai
+    from openai.error import OpenAIError, RateLimitError
+except Exception:  # pragma: no cover - library may be missing in tests
+    openai = None
+    OpenAIError = Exception
+    RateLimitError = Exception
 
 from src.sessions import SessionManager
 
@@ -42,9 +50,34 @@ def generate_summary(session_dir: str, manager: SessionManager | None = None) ->
         logger.exception("Failed to read transcript %s: %s", transcript_path, exc)
         return
 
-    # Very naive summary: first 100 characters
-    summary = text.strip().replace("\n", " ")[:100]
+    summary = None
     next_question = "What would you like to discuss next?"
+
+    if openai is not None:
+        try:
+            resp = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Summarize the following transcript in a single sentence.",
+                    },
+                    {"role": "user", "content": text},
+                ],
+                max_tokens=60,
+            )
+            summary = resp["choices"][0]["message"]["content"].strip()
+        except RateLimitError as exc:  # pragma: no cover - depends on API
+            logger.warning("OpenAI rate limited: %s", exc)
+        except OpenAIError as exc:  # pragma: no cover - depends on API
+            logger.exception("OpenAI error: %s", exc)
+        except Exception as exc:  # pragma: no cover - unexpected
+            logger.exception("Unexpected OpenAI failure: %s", exc)
+
+    if not summary:
+        # Very naive summary: first 100 characters
+        summary = text.strip().replace("\n", " ")[:100]
+
     data = {"summary": summary, "next_question": next_question}
 
     try:
