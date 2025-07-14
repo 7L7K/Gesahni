@@ -19,3 +19,12 @@ class StatusResponse(BaseModel):
     face_done: bool
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+class RegisterRequest(BaseModel):
+    name: str | None = None
+    email: str | None = None
+
+
+class LoginRequest(BaseModel):
+    user_id: str

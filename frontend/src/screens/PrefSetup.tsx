@@ -17,7 +17,7 @@ export default function PrefSetup() {
       body: JSON.stringify(prefs)
     })
     setPrefs(prefs)
-    nav('/finish')
+    nav('/app/enroll/finish')
   }
 
   return (

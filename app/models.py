@@ -11,6 +11,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=True)
+    email = Column(String, nullable=True, unique=True)
     greeting = Column(String, nullable=True)
     reminder_type = Column(String, nullable=True)
     is_active = Column(Boolean, default=False)
