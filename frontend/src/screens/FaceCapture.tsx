@@ -37,7 +37,7 @@ export default function FaceCapture() {
     form.append('left', captures[1], 'left.jpg')
     form.append('right', captures[2], 'right.jpg')
     await fetch(`/enroll/face/${userId}`, { method: 'POST', body: form })
-    nav('/prefs')
+    nav('/app/enroll/prefs')
   }
 
   return (

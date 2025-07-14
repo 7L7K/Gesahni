@@ -17,7 +17,7 @@ export default function Finish() {
     <div className="p-4 text-center space-y-2">
       <p>Enrollment complete!</p>
       {audioUrl && <audio controls src={audioUrl} autoPlay />}
-      <button className="px-4 py-2 bg-green-500 text-white" onClick={() => nav('/')}>Start Using Assistant</button>
+      <button className="px-4 py-2 bg-green-500 text-white" onClick={() => nav('/app/voice-ai')}>Start Using Assistant</button>
     </div>
   )
 }
