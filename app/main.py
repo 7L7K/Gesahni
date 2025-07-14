@@ -4,7 +4,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from .routes import enroll, consent
+from .routes import enroll, consent, auth, users
 
 app = FastAPI()
 
@@ -30,3 +30,5 @@ async def health() -> dict[str, str]:
 
 app.include_router(enroll.router, prefix="/enroll")
 app.include_router(consent.router, prefix="/consent")
+app.include_router(auth.router, prefix="/auth")
+app.include_router(users.router, prefix="/users")
