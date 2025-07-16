@@ -1,4 +1,3 @@
-version: '3.9'
 
 services:
   redis:
@@ -30,9 +29,11 @@ services:
       - backend
 
   insightface-rest:
-    image: ghcr.io/deepinsight/insightface-rest:latest
+    image: jasongwq/insightface-rest:v0.6.0.0-cpu  # public, CPU-only
     ports:
-      - "18080:18080"
+      - "18081:18081"
+    restart:
+      unless-stopped
     networks:
       - backend
 
@@ -53,37 +54,8 @@ services:
       - backend
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db/postgres
-      - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
-
-  flask-ui:
-    build: .
-    command: python server.py
-    volumes:
-      - .:/app
-      - ./config.yaml:/app/config.yaml
-      - uploads:/uploads
-      - sessions:/sessions
-    depends_on:
-      - redis
-      - fastapi-api
-      - tusd
-      - insightface-rest
-    networks:
-      - backend
-    ports:
-      - "5000:5000"
-
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    networks:
-      - backend
+    env_file:
+      - .env
 
   worker:
     build:
@@ -95,10 +67,6 @@ services:
       - ./config.yaml:/worker/config.yaml
       - uploads:/uploads
       - sessions:/sessions
-    environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db/postgres
-      - CELERY_BROKER=redis://redis:6379/0
-      - CELERY_BACKEND=redis://redis:6379/0
     depends_on:
       - redis
       - fastapi-api
@@ -106,6 +74,8 @@ services:
       - db
     networks:
       - backend
+    env_file:
+      - .env
 
   flower:
     image: mher/flower:latest
@@ -118,6 +88,15 @@ services:
       - backend
     ports:
       - "5555:5555"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - backend
 
 volumes:
   uploads:
