@@ -18,6 +18,9 @@ Docker Compose is provided for local development:
 docker-compose up --build
 ```
 
+Once running, a Flower dashboard for Celery is available at
+`http://localhost:5555`.
+
 The React frontend can be started separately:
 
 ```bash
