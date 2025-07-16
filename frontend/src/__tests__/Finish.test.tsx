@@ -29,6 +29,6 @@ describe('Finish screen', () => {
     })
 
     await userEvent.click(screen.getByRole('button'))
-    expect(navigate).toHaveBeenCalledWith('/')
+    expect(navigate).toHaveBeenCalledWith('/app/voice-ai')
   })
 })

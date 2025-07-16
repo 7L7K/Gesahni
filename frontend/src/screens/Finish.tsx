@@ -8,7 +8,7 @@ export default function Finish() {
   const [audioUrl, setAudioUrl] = useState('')
 
   useEffect(() => {
-    fetch(`/enroll/complete/${userId}`, { method: 'POST' })
+    fetch(`/api/enroll/complete/${userId}`, { method: 'POST' })
       .then(r => r.json())
       .then(d => setAudioUrl(d.audio_url))
   }, [])

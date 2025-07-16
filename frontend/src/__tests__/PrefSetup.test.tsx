@@ -30,6 +30,6 @@ describe('PrefSetup screen', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
     expect(setPrefs).toHaveBeenCalledWith({ name: 'Bob', greeting: 'Hi', reminder_type: 'email' })
-    expect(navigate).toHaveBeenCalledWith('/finish')
+    expect(navigate).toHaveBeenCalledWith('/app/enroll/finish')
   })
 })
