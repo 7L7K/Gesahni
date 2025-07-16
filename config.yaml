@@ -20,6 +20,9 @@ session_root: sessions
 # Flask debug mode
 flask_debug: false
 
+# Database connection string
+database_url: postgresql+psycopg2://postgres:postgres@db/postgres
+
 # File tracking the current processing status
 status_file: status.json
 
