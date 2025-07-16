@@ -79,6 +79,7 @@ Key options include:
 - `analysis_model` – GPT-4 model name used for summarization
 - `session_root` – directory where session folders are created
 - `flask_debug` – enable or disable Flask debug mode
+- `database_url` – Postgres connection string
 
 ### Web Interface
 
