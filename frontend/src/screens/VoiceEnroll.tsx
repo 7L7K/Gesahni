@@ -19,7 +19,7 @@ export default function VoiceEnroll() {
     if (!audioBlob) return
     const form = new FormData()
     form.append('file', audioBlob, 'voice.wav')
-    await fetch(`/enroll/voice/${userId}`, { method: 'POST', body: form })
+    await fetch(`/api/enroll/voice/${userId}`, { method: 'POST', body: form })
     nav('/app/enroll/face')
   }
 

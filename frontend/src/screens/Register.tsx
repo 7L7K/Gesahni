@@ -11,7 +11,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
 
   async function submit() {
-    const resp = await fetch('/auth/register', {
+    const resp = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email })

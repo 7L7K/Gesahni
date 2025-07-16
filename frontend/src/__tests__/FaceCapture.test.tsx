@@ -33,7 +33,7 @@ describe('FaceCapture screen', () => {
     await userEvent.click(btn)
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(fetchMock).toHaveBeenCalledWith(`/enroll/face/${ctx.userId}`, expect.any(Object))
+    expect(fetchMock).toHaveBeenCalledWith(`/api/enroll/face/${ctx.userId}`, expect.any(Object))
     expect(navigate).toHaveBeenCalledWith('/prefs')
   })
 })

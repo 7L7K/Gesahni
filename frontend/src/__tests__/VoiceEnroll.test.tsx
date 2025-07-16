@@ -31,7 +31,7 @@ describe('VoiceEnroll screen', () => {
     fireEvent.mouseUp(btn)
 
     await waitFor(() => expect(stop).toHaveBeenCalled())
-    expect(fetchMock).toHaveBeenCalledWith(`/enroll/voice/${ctx.userId}`, expect.any(Object))
-    expect(navigate).toHaveBeenCalledWith('/face')
+    expect(fetchMock).toHaveBeenCalledWith(`/api/enroll/voice/${ctx.userId}`, expect.any(Object))
+    expect(navigate).toHaveBeenCalledWith('/app/enroll/face')
   })
 })
