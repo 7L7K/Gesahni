@@ -2,18 +2,22 @@
 import argparse
 import logging
 import yaml
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 from src.assistant.core import Assistant
 from src.sessions import SessionManager
 
 logger = logging.getLogger(__name__)
 
 def load_config(path: str) -> dict:
-    """Load YAML configuration from ``path``.
-    Returns an empty dictionary if loading fails.
-    """
+    """Load YAML configuration and substitute environment variables."""
+    env_file = Path(path).with_name(".env")
+    load_dotenv(env_file)
     try:
-        with open(path, 'r', encoding='utf-8') as fh:
-            return yaml.safe_load(fh) or {}
+        text = Path(path).read_text(encoding="utf-8")
+        text = os.path.expandvars(text)
+        return yaml.safe_load(text) or {}
     except Exception as exc:
         logger.exception("Failed to load configuration: %s", exc)
         return {}

@@ -8,6 +8,8 @@ import yaml
 import json
 import atexit
 import shutil
+import os
+from dotenv import load_dotenv
 
 from src.sessions import SessionManager
 from src.transcription.base import TranscriptionService
@@ -15,9 +17,13 @@ from src.memory.memory import Memory
 from src.assistant.chat import ChatAssistant
 
 def load_config(path: str) -> dict:
+    """Load YAML configuration and substitute environment variables."""
+    env_file = Path(path).with_name(".env")
+    load_dotenv(env_file)
     try:
-        with open(path, "r", encoding="utf-8") as fh:
-            return yaml.safe_load(fh) or {}
+        text = Path(path).read_text(encoding="utf-8")
+        text = os.path.expandvars(text)
+        return yaml.safe_load(text) or {}
     except Exception as exc:
         logger = logging.getLogger(__name__)
         logger.exception("Failed to load config: %s", exc)
