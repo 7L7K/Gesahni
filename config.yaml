@@ -20,6 +20,9 @@ session_root: sessions
 # Flask debug mode
 flask_debug: false
 
+# Database connection string
+database_url: postgresql+psycopg2://postgres:postgres@db/postgres
+
 # File tracking the current processing status
 status_file: status.json
 
@@ -29,10 +32,10 @@ media:
   sessions: sessions
 
 # Redis connection
-redis_url: redis://localhost:6379/0
+redis_url: ${REDIS_URL}
 
 # InsightFace API endpoint
-insightface_endpoint: http://localhost:18080
+insightface_endpoint: ${INSIGHTFACE_ENDPOINT}
 
 # TTS engine choice (piper or voicevox)
 tts_engine: piper

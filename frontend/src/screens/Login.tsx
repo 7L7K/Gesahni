@@ -10,7 +10,7 @@ export default function Login() {
   const [userId, setUserId] = useState('')
 
   async function submit() {
-    const resp = await fetch('/auth/login', {
+    const resp = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId })
@@ -18,7 +18,7 @@ export default function Login() {
     if (resp.ok) {
       auth.setUserId(userId)
       enroll?.setUserId(userId)
-      const s = await fetch(`/users/${userId}/enrollment-status`)
+      const s = await fetch(`/api/users/${userId}/enrollment-status`)
       const d = await s.json()
       auth.setEnrolled(d.status === 'complete')
       if (d.status === 'complete') nav('/app/voice-ai')

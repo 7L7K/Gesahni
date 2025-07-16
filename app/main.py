@@ -10,7 +10,10 @@ from fastapi import Request
 
 app = FastAPI()
 
-origins = ["http://localhost:5173"]
+# Allow requests from the frontend and the API service itself during
+# local development. The frontend typically runs on port 5174 while the
+# FastAPI backend runs on port 8000.
+origins = ["http://localhost:5174", "http://localhost:8000"]
 
 app.add_middleware(
     CORSMiddleware,

@@ -11,7 +11,7 @@ export default function PrefSetup() {
 
   async function submit() {
     const prefs = { name, greeting, reminder_type: reminder }
-    await fetch(`/enroll/prefs/${userId}`, {
+    await fetch(`/api/enroll/prefs/${userId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(prefs)
