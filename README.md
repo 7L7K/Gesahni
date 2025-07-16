@@ -30,6 +30,8 @@ cd frontend && npm install && npm run dev
 - `CELERY_BROKER` – Redis URL used by Celery
 - `CELERY_BACKEND` – result backend for Celery
 - `FERNET_KEY` – key used for encrypting uploaded media
+- A `db` PostgreSQL container stores persistent data for the API and worker
+  services
 
 ### How to enroll
 
