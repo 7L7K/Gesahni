@@ -1,3 +1,4 @@
+# (no top‑level version: line needed for Compose v2+)
 
 services:
   redis:
@@ -29,7 +30,7 @@ services:
       - backend
 
   insightface-rest:
-    image: jasongwq/insightface-rest:v0.6.0.0-cpu  # public, CPU-only
+    image: jasongwq/insightface-rest:v0.6.0.0-cpu
     ports:
       - "18081:18081"
     restart:
@@ -38,8 +39,11 @@ services:
       - backend
 
   fastapi-api:
-    build: .
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     volumes:
       - .:/app
       - ./config.yaml:/app/config.yaml
@@ -50,18 +54,27 @@ services:
       - tusd
       - insightface-rest
       - db
-    networks:
-      - backend
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - INSIGHTFACE_ENDPOINT=http://insightface-rest:18081
+    networks:
+      - backend
 
   worker:
     build:
       context: .
+      dockerfile: Dockerfile
       target: worker
-    command: celery -A app.utils.whisper_worker.celery_app worker --loglevel=info
+    command:
+      - celery
+      - "-A"
+      - app.utils.whisper_worker.celery_app
+      - worker
+      - "--loglevel=info"
     volumes:
       - .:/worker
       - ./config.yaml:/worker/config.yaml
@@ -72,10 +85,13 @@ services:
       - fastapi-api
       - insightface-rest
       - db
-    networks:
-      - backend
     env_file:
       - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - INSIGHTFACE_ENDPOINT=http://insightface-rest:18081
+    networks:
+      - backend
 
   flower:
     image: mher/flower:latest
@@ -84,10 +100,10 @@ services:
       - FLOWER_PORT=5555
     depends_on:
       - redis
-    networks:
-      - backend
     ports:
       - "5555:5555"
+    networks:
+      - backend
 
   prometheus:
     image: prom/prometheus
