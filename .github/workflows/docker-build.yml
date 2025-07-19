@@ -19,7 +19,8 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build Docker image
-      run: docker build -t kingal7/gesahni:latest .
+      run: docker build -t 7l7k/gesahni:latest .
 
     - name: Push image to Docker Hub
-      run: docker push kingal7/gesahni:latest
+      run: docker push 7l7k/gesahni:latest  # use your real DockerHub name
+
