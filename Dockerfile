@@ -12,9 +12,9 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# install all your Python requirements into /root/.local
+# install all your Python requirements system‑wide
 COPY requirements.txt ./
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ----------------------
 # Runtime: Uvicorn API server
@@ -25,9 +25,6 @@ WORKDIR /app
 
 # bring in your code
 COPY . .
-
-# make sure the pip bins are on PATH
-ENV PATH=/root/.local/bin:$PATH
 
 # launch FastAPI
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
