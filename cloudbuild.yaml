@@ -1,0 +1,19 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'build', '-t', 'us-east5-docker.pkg.dev/$PROJECT_ID/gesahni/gesahni:latest', '.' ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', 'us-east5-docker.pkg.dev/$PROJECT_ID/gesahni/gesahni:latest' ]
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      [
+        'run', 'deploy', 'gesahni',
+        '--image', 'us-east5-docker.pkg.dev/$PROJECT_ID/gesahni/gesahni:latest',
+        '--region', 'us-east5',
+        '--allow-unauthenticated',
+        '--port', '8000'
+      ]
+images:
+  - us-east5-docker.pkg.dev/$PROJECT_ID/gesahni/gesahni:latest
