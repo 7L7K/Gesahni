@@ -12,7 +12,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# install all your Python requirements system‑wide
+# install all your Python requirements system-wide
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -26,8 +26,11 @@ WORKDIR /app
 # bring in your code
 COPY . .
 
-# launch FastAPI
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# launch FastAPI on the Cloud Run–assigned port (or 8000 when running locally)
+# Option A: shell‐form (expands $PORT)
+CMD exec uvicorn app.main:app \
+  --host 0.0.0.0 \
+  --port ${PORT:-8000}
 
 # ----------------------
 # Worker: Celery + Whisper
