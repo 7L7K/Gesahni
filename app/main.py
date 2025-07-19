@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.staticfiles import StaticFiles
@@ -6,9 +6,13 @@ from pathlib import Path
 
 from .routes import enroll, consent, auth, users
 from .utils.session import get_user
-from fastapi import Request
 
 app = FastAPI()
+
+# NEW ➜ default “root” route so Cloud Run (or any LB) can probe /
+@app.get("/")
+async def root() -> dict[str, str]:
+    return {"status": "ok"}
 
 # Allow requests from the frontend and the API service itself during
 # local development. The frontend typically runs on port 5174 while the
@@ -29,6 +33,7 @@ Instrumentator().instrument(app).expose(app)
 Path("sessions").mkdir(parents=True, exist_ok=True)
 app.mount("/sessions", StaticFiles(directory="sessions"), name="sessions")
 
+
 @app.middleware("http")
 async def session_middleware(request: Request, call_next):
     auth_header = request.headers.get("Authorization")
@@ -40,10 +45,13 @@ async def session_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
+# API routers
 app.include_router(enroll.router, prefix="/enroll")
 app.include_router(consent.router, prefix="/consent")
 app.include_router(auth.router, prefix="/auth")
