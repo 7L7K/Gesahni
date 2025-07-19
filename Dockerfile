@@ -17,22 +17,6 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ----------------------
-# Runtime: Uvicorn API server
-# ----------------------
-FROM builder AS runtime
-
-WORKDIR /app
-
-# bring in your code
-COPY . .
-
-# launch FastAPI on the Cloud Run–assigned port (or 8000 when running locally)
-# Option A: shell‐form (expands $PORT)
-CMD exec uvicorn app.main:app \
-  --host 0.0.0.0 \
-  --port ${PORT:-8000}
-
-# ----------------------
 # Worker: Celery + Whisper
 # ----------------------
 FROM builder AS worker
@@ -44,3 +28,19 @@ COPY . .
 
 # launch your Celery/Whisper worker
 CMD ["celery", "-A", "app.utils.whisper_worker.celery_app", "worker", "--loglevel=info"]
+
+# ----------------------
+# Runtime: Uvicorn API server
+# ----------------------
+FROM builder AS runtime
+
+WORKDIR /app
+
+# bring in your code
+COPY . .
+
+# expose HTTP port
+EXPOSE 8000
+
+# launch FastAPI (Cloud Run sets PORT env var automatically)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
