@@ -1,24 +1,27 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
-from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .routes import enroll, consent, auth, users
-from .utils.session import get_user
+from .firebase_client import auth as fb_auth, firebase_admin  # NEW
+from firebase_admin import exceptions as fb_exc               # NEW
 
 app = FastAPI()
 
-# NEW ➜ default “root” route so Cloud Run (or any LB) can probe /
+# ───────────────────────────────────────── basics
 @app.get("/")
 async def root() -> dict[str, str]:
     return {"status": "ok"}
 
-# Allow requests from the frontend and the API service itself during
-# local development. The frontend typically runs on port 5174 while the
-# FastAPI backend runs on port 8000.
-origins = ["http://localhost:5174", "http://localhost:8000"]
-
+origins = [
+    "http://localhost:5174",
+    "http://localhost:8000",
+    # production front‑end URLs
+    "https://gesahni-git-main-7l7ks-projects.vercel.app",
+    "https://gesahni.vercel.app",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -29,30 +32,34 @@ app.add_middleware(
 
 Instrumentator().instrument(app).expose(app)
 
-# Ensure session directory exists
+# sessions directory (for face, voice, etc.)
 Path("sessions").mkdir(parents=True, exist_ok=True)
 app.mount("/sessions", StaticFiles(directory="sessions"), name="sessions")
 
-
+# ───────────────────────────────────────── auth middleware
 @app.middleware("http")
 async def session_middleware(request: Request, call_next):
+    token = None
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ", 1)[1]
-        user = get_user(token)
-        if user:
-            request.state.user_id = user
-    response = await call_next(request)
-    return response
 
+    if token:
+        try:
+            decoded = fb_auth.verify_id_token(token, check_revoked=True)
+            request.state.user_id = decoded["uid"]
+        except (fb_exc.InvalidIdTokenError, fb_exc.RevokedIdTokenError):
+            # invalid → treat as anonymous; routes can raise 401/403
+            pass
+
+    return await call_next(request)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
-
-# API routers
-app.include_router(enroll.router, prefix="/enroll")
+# ───────────────────────────────────────── routers
+app.include_router(enroll.router,  prefix="/enroll")
 app.include_router(consent.router, prefix="/consent")
-app.include_router(auth.router, prefix="/auth")
-app.include_router(users.router, prefix="/users")
+app.include_router(auth.router,    prefix="/auth")
+app.include_router(users.router,   prefix="/users")
