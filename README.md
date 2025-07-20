@@ -156,3 +156,7 @@ Contributions are welcome! To contribute:
 3. Open a pull request describing your changes.
 
 Please ensure your code follows standard Python style conventions and includes appropriate documentation.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -1,9 +1,11 @@
 import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EnrollContext } from '../context/EnrollContext'
+import { AuthContext } from '../context/AuthContext'
 
 export default function PrefSetup() {
   const { userId, setPrefs } = useContext(EnrollContext)!
+  const { token } = useContext(AuthContext)!
   const nav = useNavigate()
   const [name, setName] = useState('')
   const [greeting, setGreeting] = useState('')
@@ -13,7 +15,7 @@ export default function PrefSetup() {
     const prefs = { name, greeting, reminder_type: reminder }
     await fetch(`/api/enroll/prefs/${userId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(prefs)
     })
     setPrefs(prefs)

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PrefSetup from '../screens/PrefSetup'
 import { EnrollContext } from '../context/EnrollContext'
+import { AuthContext } from '../context/AuthContext'
 import { vi } from 'vitest'
 
 const navigate = vi.fn()
@@ -17,10 +18,13 @@ describe('PrefSetup screen', () => {
     global.fetch = fetchMock
     const setPrefs = vi.fn()
     const ctx = { userId: 'u1', prefs: {}, setUserId: vi.fn(), setPrefs }
+    const authCtx = { userId: 'u1', enrolled: false, token: 'tok', setUserId: vi.fn(), setEnrolled: vi.fn() }
     render(
-      <EnrollContext.Provider value={ctx}>
-        <PrefSetup />
-      </EnrollContext.Provider>
+      <AuthContext.Provider value={authCtx}>
+        <EnrollContext.Provider value={ctx}>
+          <PrefSetup />
+        </EnrollContext.Provider>
+      </AuthContext.Provider>
     )
 
     await userEvent.type(screen.getByPlaceholderText(/name/i), 'Bob')
@@ -29,6 +33,9 @@ describe('PrefSetup screen', () => {
     await userEvent.click(screen.getByRole('button', { name: /save/i }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledWith(`/api/enroll/prefs/${ctx.userId}`, expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer tok' })
+    }))
     expect(setPrefs).toHaveBeenCalledWith({ name: 'Bob', greeting: 'Hi', reminder_type: 'email' })
     expect(navigate).toHaveBeenCalledWith('/app/enroll/finish')
   })
