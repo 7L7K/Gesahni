@@ -2,25 +2,33 @@ import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { EnrollContext } from '../context/EnrollContext'
+import { signInAnonymously } from 'firebase/auth'
+import { auth as firebaseAuth } from '../firebase'
 
 export default function Login() {
   const nav = useNavigate()
-  const auth = useContext(AuthContext)!
+  const authCtx = useContext(AuthContext)!
   const enroll = useContext(EnrollContext)
   const [userId, setUserId] = useState('')
 
   async function submit() {
+    if (!firebaseAuth.currentUser) {
+      await signInAnonymously(firebaseAuth)
+    }
+    const token = await firebaseAuth.currentUser!.getIdToken()
     const resp = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ user_id: userId })
     })
     if (resp.ok) {
-      auth.setUserId(userId)
+      authCtx.setUserId(userId)
       enroll?.setUserId(userId)
-      const s = await fetch(`/api/users/${userId}/enrollment-status`)
+      const s = await fetch(`/api/users/${userId}/enrollment-status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
       const d = await s.json()
-      auth.setEnrolled(d.status === 'complete')
+      authCtx.setEnrolled(d.status === 'complete')
       if (d.status === 'complete') nav('/app/voice-ai')
       else nav('/app/enroll/voice')
     }

@@ -1,6 +1,7 @@
 import { useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EnrollContext } from '../context/EnrollContext'
+import { AuthContext } from '../context/AuthContext'
 import useRecorder from '../hooks/useRecorder'
 
 const phrases = [
@@ -11,6 +12,7 @@ const phrases = [
 
 export default function VoiceEnroll() {
   const { userId } = useContext(EnrollContext)!
+  const { token } = useContext(AuthContext)!
   const nav = useNavigate()
   const { isRecording, start, stop, audioBlob } = useRecorder()
 
@@ -19,7 +21,11 @@ export default function VoiceEnroll() {
     if (!audioBlob) return
     const form = new FormData()
     form.append('file', audioBlob, 'voice.wav')
-    await fetch(`/api/enroll/voice/${userId}`, { method: 'POST', body: form })
+    await fetch(`/api/enroll/voice/${userId}`, {
+      method: 'POST',
+      body: form,
+      headers: { Authorization: `Bearer ${token}` }
+    })
     nav('/app/enroll/face')
   }
 

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import VoiceEnroll from '../screens/VoiceEnroll'
 import { EnrollContext } from '../context/EnrollContext'
+import { AuthContext } from '../context/AuthContext'
 import { vi } from 'vitest'
 
 const navigate = vi.fn()
@@ -21,17 +22,22 @@ describe('VoiceEnroll screen', () => {
     // @ts-ignore
     global.fetch = fetchMock
     const ctx = { userId: '123', prefs: {}, setUserId: vi.fn(), setPrefs: vi.fn() }
+    const authCtx = { userId: '123', enrolled: false, token: 'tok', setUserId: vi.fn(), setEnrolled: vi.fn() }
     render(
-      <EnrollContext.Provider value={ctx}>
-        <VoiceEnroll />
-      </EnrollContext.Provider>
+      <AuthContext.Provider value={authCtx}>
+        <EnrollContext.Provider value={ctx}>
+          <VoiceEnroll />
+        </EnrollContext.Provider>
+      </AuthContext.Provider>
     )
     const btn = screen.getByRole('button')
     fireEvent.mouseDown(btn)
     fireEvent.mouseUp(btn)
 
     await waitFor(() => expect(stop).toHaveBeenCalled())
-    expect(fetchMock).toHaveBeenCalledWith(`/api/enroll/voice/${ctx.userId}`, expect.any(Object))
+    expect(fetchMock).toHaveBeenCalledWith(`/api/enroll/voice/${ctx.userId}`, expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer tok' })
+    }))
     expect(navigate).toHaveBeenCalledWith('/app/enroll/face')
   })
 })
