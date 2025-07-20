@@ -3,12 +3,9 @@ from pathlib import Path
 
 from celery import Celery
 import whisper
-from sqlalchemy.orm import Session
-
 from ..database import SessionLocal
 from ..models import VoiceSample
 from .encryption import decrypt_file
-from uuid import UUID
 
 celery_app = Celery(
     'whisper_worker',

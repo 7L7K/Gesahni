@@ -3,7 +3,6 @@ from pathlib import Path
 from datetime import date
 
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
-from uuid import UUID
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import requests
