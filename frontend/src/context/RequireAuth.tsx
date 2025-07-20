@@ -3,15 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { AuthContext } from './AuthContext'
 
 export default function RequireAuth({ children }: { children: JSX.Element }) {
-  const { userId, enrolled } = useContext(AuthContext)!
+  const { userId, enrolled, token } = useContext(AuthContext)!
   const nav = useNavigate()
   const loc = useLocation()
   useEffect(() => {
-    if (!userId) {
+    if (!token) {
       nav('/login')
     } else if (!enrolled && !loc.pathname.startsWith('/app/enroll')) {
       nav('/app/enroll/voice')
     }
-  }, [userId, enrolled, loc.pathname])
-  return userId ? children : null
+  }, [token, enrolled, loc.pathname])
+  return token ? children : null
 }

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import Finish from '../screens/Finish'
 import { EnrollContext } from '../context/EnrollContext'
+import { AuthContext } from '../context/AuthContext'
 import { vi } from 'vitest'
 
 const navigate = vi.fn()
@@ -16,13 +17,19 @@ describe('Finish screen', () => {
     // @ts-ignore
     global.fetch = fetchMock
     const ctx = { userId: 'uid', prefs: {}, setUserId: vi.fn(), setPrefs: vi.fn() }
+    const authCtx = { userId: 'uid', enrolled: false, token: 'tok', setUserId: vi.fn(), setEnrolled: vi.fn() }
     const { container } = render(
-      <EnrollContext.Provider value={ctx}>
-        <Finish />
-      </EnrollContext.Provider>
+      <AuthContext.Provider value={authCtx}>
+        <EnrollContext.Provider value={ctx}>
+          <Finish />
+        </EnrollContext.Provider>
+      </AuthContext.Provider>
     )
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledWith(`/api/enroll/complete/${ctx.userId}`, expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer tok' })
+    }))
     await waitFor(() => {
       const audio = container.querySelector('audio')
       expect(audio?.getAttribute('src')).toBe('final.mp3')

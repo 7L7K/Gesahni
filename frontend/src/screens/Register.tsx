@@ -2,22 +2,28 @@ import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { EnrollContext } from '../context/EnrollContext'
+import { signInAnonymously } from 'firebase/auth'
+import { auth as firebaseAuth } from '../firebase'
 
 export default function Register() {
   const nav = useNavigate()
-  const auth = useContext(AuthContext)!
+  const authCtx = useContext(AuthContext)!
   const enroll = useContext(EnrollContext)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
 
   async function submit() {
+    if (!firebaseAuth.currentUser) {
+      await signInAnonymously(firebaseAuth)
+    }
+    const token = await firebaseAuth.currentUser!.getIdToken()
     const resp = await fetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ name, email })
     })
     const data = await resp.json()
-    auth.setUserId(data.user_id)
+    authCtx.setUserId(data.user_id)
     enroll?.setUserId(data.user_id)
     nav('/app/enroll/voice')
   }

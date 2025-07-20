@@ -1,9 +1,11 @@
 import { useContext, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EnrollContext } from '../context/EnrollContext'
+import { AuthContext } from '../context/AuthContext'
 
 export default function FaceCapture() {
   const { userId } = useContext(EnrollContext)!
+  const { token } = useContext(AuthContext)!
   const nav = useNavigate()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -36,7 +38,11 @@ export default function FaceCapture() {
     form.append('front', captures[0], 'front.jpg')
     form.append('left', captures[1], 'left.jpg')
     form.append('right', captures[2], 'right.jpg')
-    await fetch(`/api/enroll/face/${userId}`, { method: 'POST', body: form })
+    await fetch(`/api/enroll/face/${userId}`, {
+      method: 'POST',
+      body: form,
+      headers: { Authorization: `Bearer ${token}` }
+    })
     nav('/app/enroll/prefs')
   }
 
