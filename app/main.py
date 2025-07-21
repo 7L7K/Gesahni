@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from .routes import enroll, consent, auth, users
+from .routes import caption_ws
 from .firebase_client import auth as fb_auth, firebase_admin  # NEW
 from firebase_admin import exceptions as fb_exc               # NEW
 
@@ -63,3 +64,4 @@ app.include_router(enroll.router,  prefix="/enroll")
 app.include_router(consent.router, prefix="/consent")
 app.include_router(auth.router,    prefix="/auth")
 app.include_router(users.router,   prefix="/users")
+app.include_router(caption_ws.router, prefix="/ws")
