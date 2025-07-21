@@ -10,7 +10,7 @@ vi.mock('../firebase', () => ({
 }))
 vi.mock('firebase/auth', async () => {
   const actual: any = await vi.importActual('firebase/auth')
-  return { ...actual, signInAnonymously: vi.fn(() => Promise.resolve()) }
+  return { ...actual, signInWithEmailAndPassword: vi.fn(() => Promise.resolve({ user: { getIdToken: () => Promise.resolve('tok'), uid: 'u1' } })) }
 })
 
 import { render, screen, waitFor } from '@testing-library/react'
@@ -18,7 +18,7 @@ import userEvent from '@testing-library/user-event'
 import Login from '../screens/Login'
 import { AuthContext } from '../context/AuthContext'
 import { EnrollContext } from '../context/EnrollContext'
-import { signInAnonymously } from 'firebase/auth'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 
 describe('Login screen', () => {
   it('sends auth token in header', async () => {
@@ -35,7 +35,8 @@ describe('Login screen', () => {
       </AuthContext.Provider>
     )
 
-    await userEvent.type(screen.getByPlaceholderText(/enter your id/i), 'abc')
+    await userEvent.type(screen.getByPlaceholderText(/email/i), 'abc@example.com')
+    await userEvent.type(screen.getByPlaceholderText(/password/i), 'secret')
     await userEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
